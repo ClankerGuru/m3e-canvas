@@ -76,45 +76,73 @@ const STRIP = [
   "whileTap",
 ] as const;
 
+const UNITLESS = new Set(["opacity", "zIndex", "fontWeight", "scale", "flex", "flexGrow", "flexShrink"]);
+
 function applyStyle(el: HTMLElement, style: Record<string, unknown> | string | undefined) {
   if (!style || typeof style === "string") return;
+  let x: unknown;
+  let y: unknown;
+  let scale: unknown;
   for (const [k, raw] of Object.entries(style)) {
     const v = isMV(raw) ? raw.get() : raw;
     if (v == null) continue;
-    if (k === "x" || k === "y") {
-      el.style.transform = `${el.style.transform} translate${k.toUpperCase()}(${typeof v === "number" ? `${v}px` : v})`.trim();
+    if (k === "x") {
+      x = v;
+      continue;
+    }
+    if (k === "y") {
+      y = v;
+      continue;
+    }
+    if (k === "scale") {
+      scale = v;
       continue;
     }
     const css = k.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
-    if (typeof v === "number" && k !== "opacity" && k !== "zIndex" && k !== "fontWeight") {
+    if (typeof v === "number" && v !== 0 && !UNITLESS.has(k)) {
       el.style.setProperty(css, `${v}px`);
     } else {
       el.style.setProperty(css, String(v));
     }
   }
+  const parts: string[] = [];
+  if (x != null || y != null) {
+    const tx = typeof x === "number" ? `${x}px` : (x ?? 0);
+    const ty = typeof y === "number" ? `${y}px` : (y ?? 0);
+    parts.push(`translate(${tx}, ${ty})`);
+  }
+  if (scale != null) parts.push(`scale(${scale})`);
+  if (parts.length) el.style.transform = parts.join(" ");
 }
 
 function MotionTag(tag: string) {
   return (raw: JSX.HTMLAttributes<HTMLElement> & Record<string, unknown>) => {
     const [stripped, rest] = splitProps(raw, [...STRIP]);
-    void stripped;
+    let node: HTMLElement | undefined;
+    const paint = () => {
+      if (!node) return;
+      const style = rest.style;
+      if (style && typeof style === "object") applyStyle(node, style as Record<string, unknown>);
+      const anim = stripped.animate as Record<string, unknown> | undefined;
+      if (anim) applyStyle(node, anim);
+    };
+    createEffect(paint);
     return (
       <Dynamic
         component={tag}
         {...rest}
         ref={(el: HTMLElement) => {
+          node = el;
+          paint();
           const userRef = rest.ref;
           if (typeof userRef === "function") (userRef as (e: HTMLElement) => void)(el);
           else if (userRef && typeof userRef === "object") (userRef as { current: HTMLElement | null }).current = el;
-          createEffect(() => {
-            const style = rest.style as Record<string, unknown> | undefined;
-            applyStyle(el, style);
-            if (style) {
-              for (const v of Object.values(style)) {
-                if (isMV(v)) v.on("change", () => applyStyle(el, style));
-              }
+          const style = rest.style as Record<string, unknown> | undefined;
+          if (style && typeof style === "object") {
+            for (const v of Object.values(style)) {
+              if (isMV(v)) v.on("change", paint);
             }
-          });
+          }
         }}
       />
     );

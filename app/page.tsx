@@ -2284,9 +2284,7 @@ export default function Page() {
         <motion.div
           key={g.id}
           initial={false}
-          animate={{ x: g.x - ox, y: g.y - oy }}
-          transition={instantG ? INSTANT : OPEN}
-          style={s({ position: "absolute", left: 0, top: 0 })}
+          style={s({ position: "absolute", left: g.x - ox, top: g.y - oy })}
         >
           {layoutOf(g, widths()).map((pl) => (
             <div key={pl.item.id} style={s({ position: "absolute", left: pl.x - g.x, top: pl.y - g.y })}>
@@ -2340,15 +2338,10 @@ export default function Page() {
       <motion.div
         key={g.id}
         initial={false}
-        animate={{
-          x: g.x - ox + (g.axis === "x" ? shift : 0),
-          y: g.y - oy + (g.axis === "y" ? shift : 0),
-        }}
-        transition={instant ? INSTANT : OPEN}
         style={s({
           position: "absolute",
-          left: 0,
-          top: 0,
+          left: g.x - ox + (g.axis === "x" ? shift : 0),
+          top: g.y - oy + (g.axis === "y" ? shift : 0),
           display: "flex",
           flexDirection: g.axis === "x" ? "row" : "column",
           alignItems: g.axis === "x" ? "center" : "stretch",
@@ -2753,7 +2746,7 @@ export default function Page() {
                             transition: SIZE_TRANSITION,
                           })}
                         >
-                          {groups
+                          {groups()
                             .filter((g) => frameOf().get(g.id) === f.id)
                             .map((g) => renderGroup(g, f.x, f.y))}
                         </div>
@@ -2762,14 +2755,14 @@ export default function Page() {
                   );
                 })}
 
-              {groups
+              {groups()
                 .filter((g) => !frameOf().has(g.id))
                 .map((g) => renderGroup(g, 0, 0))}
 
               {/* the part in flight */}
               {drag()?.active && (
                 <motion.div
-                  style={s({
+                  style={{
                     position: "absolute",
                     left: 0,
                     top: 0,
@@ -2777,7 +2770,7 @@ export default function Page() {
                     y: sy,
                     pointerEvents: "none",
                     zIndex: 50,
-                  })}
+                  }}
                   animate={{
                     opacity: drag().overBin ? 0.4 : 1,
                     scale: drag().overBin ? 0.84 : 1,
