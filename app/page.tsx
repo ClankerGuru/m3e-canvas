@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { s } from "@/lib/css";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, createMemo } from "@/lib/hooks";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, createMemo, onMount, onCleanup } from "@/lib/hooks";
 import { AnimatePresence, motion, useReducedMotion, useSpring } from "@/lib/motion";
 import { toPng } from "html-to-image";
 import { buildPrompt, effectivePrompt } from "@/lib/prompt";
@@ -58,6 +58,28 @@ const INSTANT = { duration: 0 };
 const RAIL_W = 52;
 const MIN_Z = 0.25;
 const MAX_Z = 3;
+
+/** Phone / in-app browser: don't trust matchMedia alone (X's webview often
+ *  reports a desktop width or pointer:fine, which used to draw the desktop
+ *  chrome on a 390px screen). */
+function phoneViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  const w = window.visualViewport?.width ?? window.innerWidth;
+  const ua = navigator.userAgent || "";
+  const phoneUA = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const inApp =
+    /Twitter|Instagram|FBAN|FBAV|Line\//i.test(ua) ||
+    (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) ||
+    (/Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua));
+  if (w <= 840) return true;
+  if (phoneUA) return true;
+  if (inApp && w <= 1200) return true;
+  try {
+    return window.matchMedia("(max-width: 840px), (pointer: coarse) and (max-width: 1024px)").matches;
+  } catch {
+    return w <= 1024;
+  }
+}
 
 type View = { x: number; y: number; z: number };
 type Snap = { groupId: string; index: number; pull: number };
@@ -167,7 +189,9 @@ export default function Page() {
   const patchTheme = (patch: Partial<Theme>) => setTheme((t) => ({ ...t, ...patch }));
   const [frame, setFrame] = useState<FrameMode>("phone");
   const [lang, setLang] = useState<Lang>("ja");
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(phoneViewport);
+  /** keep the board hidden until the first fit, so a phone never flashes the desktop pan */
+  const [viewReady, setViewReady] = useState(false);
   const [sheet, setSheet] = useState<"edit" | "settings" | "lang" | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   /** frame being rendered offscreen for the PNG export */
@@ -348,20 +372,23 @@ export default function Page() {
     }
     const ui = readStoredUi();
     if (ui) {
-      if (ui.view) setView(ui.view);
-      if (typeof ui.leftOpen === "boolean") setLeftOpen(ui.leftOpen);
-      if (typeof ui.rightOpen === "boolean") setRightOpen(ui.rightOpen);
+      if (ui.view && !phoneViewport()) setView(ui.view);
+      if (typeof ui.leftOpen === "boolean" && !phoneViewport()) setLeftOpen(ui.leftOpen);
+      if (typeof ui.rightOpen === "boolean" && !phoneViewport()) setRightOpen(ui.rightOpen);
       if (ui.leftW) setLeftW(Math.max(RAIL_W + 244, ui.leftW));
       if (ui.rightW) setRightW(ui.rightW);
       if (Array.isArray(ui.favorites)) setFavorites(ui.favorites);
-      if (ui.mode) setMode(ui.mode);
+      if (ui.mode && !phoneViewport()) setMode(ui.mode);
       if (isLang(ui.lang)) setLang(ui.lang);
     } else {
       const nl = (navigator.language ?? "").toLowerCase();
       if (nl.startsWith("zh")) setLang("zh");
       else if (!nl.startsWith("ja")) setLang("en");
-      queueMicrotask(() => fitRef.current());
     }
+    queueMicrotask(() => {
+      fitRef.current();
+      setViewReady(true);
+    });
     setAiSettings(loadAiSettings());
     loadedRef.current = true;
   }, []);
@@ -410,17 +437,16 @@ export default function Page() {
   }, []);
 
   /* everyone works on phone screens; a phone gets one fixed screen and the select tool only */
-  useEffect(() => {
-    const mq = window.matchMedia(
-      "(max-width: 840px), (pointer: coarse) and (max-width: 1024px)",
-    );
+  onMount(() => {
     const apply = () => {
-      const m = mq.matches;
+      const m = phoneViewport();
       setIsMobile(m);
       mobileRef.current = m;
       if (m) {
         setMode("select");
         setSheet(null);
+        setLeftOpen(false);
+        setRightOpen(false);
         if (!hadDocRef.current) {
           hadDocRef.current = true;
           setGroups(mobileSeed());
@@ -432,12 +458,22 @@ export default function Page() {
         frameRef.current = "phone";
       }
       ensureFrameRef.current();
-      queueMicrotask(() => fitRef.current());
+      queueMicrotask(() => {
+        fitRef.current();
+        setViewReady(true);
+      });
     };
     apply();
+    const mq = window.matchMedia("(max-width: 840px), (pointer: coarse) and (max-width: 1024px)");
     mq.addEventListener("change", apply);
-    return () => mq.removeEventListener("change", apply);
-  }, []);
+    window.addEventListener("resize", apply);
+    window.visualViewport?.addEventListener("resize", apply);
+    onCleanup(() => {
+      mq.removeEventListener("change", apply);
+      window.removeEventListener("resize", apply);
+      window.visualViewport?.removeEventListener("resize", apply);
+    });
+  });
 
   useEffect(() => {
     if (!loadedRef.current) return;
@@ -2757,6 +2793,7 @@ export default function Page() {
                 transformOrigin: "0 0",
                 transition: cameraEasing() ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined,
                 willChange: "transform",
+                visibility: viewReady() ? "visible" : "hidden",
                 fontFamily: fontFamilyOf(theme().font),
               })}
             >

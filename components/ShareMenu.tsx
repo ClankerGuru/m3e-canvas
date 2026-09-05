@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { s } from "@/lib/css";
 import { useEffect, useState } from "@/lib/hooks";
 import { AnimatePresence, motion } from "@/lib/motion";
 import type { Doc, Palette } from "@/lib/tokens";
@@ -21,7 +22,7 @@ export function ShareButton({ p, onClick, busy }: { p: Palette; onClick: () => v
       disabled={busy}
       title={busy ? t("askAiGenerating", lang) : t("askAiTitle", lang)}
       class="m3-press"
-      style={{
+      style={s({
         height: 40,
         padding: "0 8px 0 16px",
         borderRadius: 20,
@@ -35,7 +36,8 @@ export function ShareButton({ p, onClick, busy }: { p: Palette; onClick: () => v
         alignItems: "center",
         gap: 8,
         whiteSpace: "nowrap",
-      }}
+        flexShrink: 0,
+      })}
     >
       {busy && <Icon name="hourglass_top" size={18} />}
       {busy ? t("askAiGenerating", lang) : t("askAi", lang)}
@@ -45,7 +47,20 @@ export function ShareButton({ p, onClick, busy }: { p: Palette; onClick: () => v
 }
 
 const Beta = ({ p }: { p: Palette }) => (
-  <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 8, background: p.tertiaryContainer, color: p.onTertiaryContainer, letterSpacing: 0.4 }}>BETA</span>
+  <span
+    style={s({
+      fontSize: 10,
+      fontWeight: 700,
+      padding: "2px 7px",
+      borderRadius: 8,
+      background: p.tertiaryContainer,
+      color: p.onTertiaryContainer,
+      letterSpacing: 0.4,
+      flexShrink: 0,
+    })}
+  >
+    BETA
+  </span>
 );
 
 /** Ask an AI (beta): write the idea and have the author's own model draft it, or copy the
@@ -64,7 +79,7 @@ export function ShareDialog({
   p: Palette;
   doc: Doc;
   aiReady: boolean;
-  /** what to build, kept by the page so a failed draft does not lose it */
+  /** what the author typed, kept by the page so a failed draft does not lose it */
   idea: string;
   onIdea: (v: string) => void;
   open: boolean;
@@ -123,7 +138,7 @@ export function ShareDialog({
         disabled={opts?.disabled}
         title={opts?.title}
         class="m3-press"
-        style={{
+        style={s({
           height: 40,
           padding: "0 18px",
           borderRadius: radius,
@@ -140,7 +155,7 @@ export function ShareDialog({
           gap: 8,
           flex: "0 0 auto",
           whiteSpace: "nowrap",
-        }}
+        })}
       >
         <Icon name={icon} size={18} />
         {label}
@@ -158,7 +173,7 @@ export function ShareDialog({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.16 }}
           onClick={onClose}
-          style={{ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.32)", display: "grid", placeItems: "center", padding: 24 }}
+          style={s({ position: "fixed", inset: 0, zIndex: 600, background: "rgba(0,0,0,0.32)", display: "grid", placeItems: "center", padding: 24 })}
         >
           <motion.div
             role="dialog"
@@ -169,7 +184,7 @@ export function ShareDialog({
             exit={{ scale: 0.96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
             onClick={(e) => e.stopPropagation()}
-            style={{
+            style={s({
               width: "min(100%, 620px)",
               padding: 24,
               borderRadius: 28,
@@ -179,15 +194,15 @@ export function ShareDialog({
               display: "flex",
               flexDirection: "column",
               gap: 14,
-            }}
+            })}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 22 }}>{t("askAi", lang)}</span>
+            <div style={s({ display: "flex", alignItems: "center", gap: 10 })}>
+              <span style={s({ fontSize: 22 })}>{t("askAi", lang)}</span>
               <Beta p={p} />
-              <span style={{ flex: 1 }} />
+              <span style={s({ flex: 1 })} />
               {pill(copied() === "link" ? "check" : "link", copied() === "link" ? t("copied", lang) : t("shareLinkCopy", lang), copyLink, { title: t("shareLinkHint", lang) })}
             </div>
-            <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: p.onSurfaceVariant }}>{t("askAiHint", lang)}</p>
+            <p style={s({ margin: 0, fontSize: 13, lineHeight: 1.55, color: p.onSurfaceVariant })}>{t("askAiHint", lang)}</p>
             <textarea
               value={idea}
               onChange={(e) => onIdea(e.currentTarget.value)}
@@ -195,7 +210,7 @@ export function ShareDialog({
               rows={4}
               autoFocus
               spellCheck={false}
-              style={{
+              style={s({
                 width: "100%",
                 padding: "10px 14px",
                 borderRadius: 14,
@@ -208,11 +223,10 @@ export function ShareDialog({
                 outline: "none",
                 boxSizing: "border-box",
                 resize: "none",
-              }}
+              })}
             />
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {/* the left of the row: where to paste after a copy, or how to unlock drafting */}
-              <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: copied() === "ask" ? 600 : 400, color: copied() === "ask" ? p.primary : p.onSurfaceVariant }}>
+            <div style={s({ display: "flex", alignItems: "center", gap: 12 })}>
+              <span style={s({ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: copied() === "ask" ? 600 : 400, color: copied() === "ask" ? p.primary : p.onSurfaceVariant })}>
                 {copied() === "ask" ? (
                   <>
                     <Icon name="content_paste_go" size={18} />
@@ -222,19 +236,19 @@ export function ShareDialog({
                   t("aiSetupHint", lang)
                 ) : null}
               </span>
-              <div style={{ display: "inline-flex", gap: 3, flex: "0 0 auto" }}>
+              <div style={s({ display: "inline-flex", gap: 3, flex: "0 0 auto" })}>
                 {pill(copied() === "ask" ? "check" : "content_copy", copied() === "ask" ? t("copied", lang) : t("askAiCopy", lang), copyAsk, { corners: "left", title: t("askAiCopyTitle", lang) })}
                 {aiReady
                   ? pill("auto_awesome", t("askAiGenerate", lang), () => onDraft(idea), { primary: true, disabled: !idea.trim(), corners: "right", title: t("askAiGenerateTitle", lang) })
                   : pill("key", t("aiSetup", lang), onSetupAi, { primary: true, corners: "right", title: t("aiSetupTitle", lang) })}
               </div>
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div style={s({ display: "flex", justifyContent: "flex-end" })}>
               <button
                 onClick={onClose}
                 title={t("closeBtn", lang)}
                 class="m3-press"
-                style={{ height: 40, padding: "0 16px", borderRadius: 20, border: "none", background: "transparent", color: p.primary, fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+                style={s({ height: 40, padding: "0 16px", borderRadius: 20, border: "none", background: "transparent", color: p.primary, fontSize: 14, fontWeight: 600, cursor: "pointer" })}
               >
                 {t("closeBtn", lang)}
               </button>

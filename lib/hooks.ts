@@ -1,6 +1,6 @@
 import { createEffect, createMemo, createSignal, onCleanup, type Accessor, type JSX } from "solid-js";
 
-export { createContext, useContext, createSignal, createEffect, createMemo, onCleanup, For, Show } from "solid-js";
+export { createContext, useContext, createSignal, createEffect, createMemo, onCleanup, onMount, For, Show } from "solid-js";
 export type { Accessor, JSX };
 export { s } from "./css";
 export type { CSSProperties } from "./css";
