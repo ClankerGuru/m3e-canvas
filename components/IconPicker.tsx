@@ -3,6 +3,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Palette } from "@/lib/tokens";
 import { t, useLang } from "@/lib/i18n";
+import { BASE } from "@/lib/base";
 
 type IconMeta = { n: string; p: number; t: string };
 
@@ -40,7 +41,7 @@ export function IconPicker({
 
   useEffect(() => {
     if (cache) return;
-    fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/material-symbols.json`)
+    fetch(`${BASE}/material-symbols.json`)
       .then((r) => r.json())
       .then((d: IconMeta[]) => {
         cache = d;

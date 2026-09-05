@@ -5,6 +5,7 @@ import { Palette } from "@/lib/tokens";
 import { t, useLang } from "@/lib/i18n";
 import { AiSettings, PROVIDERS, Provider, providerSpec } from "@/lib/ai";
 import { Icon } from "./M3Node";
+import { BASE } from "@/lib/base";
 
 /** the message shown for a failed request, mapped from the error codes lib/ai throws */
 export function aiErrorText(e: unknown, lang: ReturnType<typeof useLang>): string {
@@ -59,8 +60,6 @@ export function AiWriteBtn({ p, busy, disabled, onClick, onCancel, label, title 
     </button>
   );
 }
-
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const field = (p: Palette): React.CSSProperties => ({
   width: "100%",
