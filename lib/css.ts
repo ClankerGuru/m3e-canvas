@@ -40,7 +40,9 @@ export function s(style: Record<string, unknown> | undefined | null): string {
   const out: string[] = [];
   for (const [k, v] of Object.entries(style)) {
     if (v == null || v === false) continue;
-    const val = typeof v === "number" && v !== 0 && !UNITLESS.has(k) ? `${v}px` : String(v);
+    const raw = typeof v === "function" && (v as { length: number }).length === 0 ? (v as () => unknown)() : v;
+    if (raw == null || raw === false) continue;
+    const val = typeof raw === "number" && raw !== 0 && !UNITLESS.has(k) ? `${raw}px` : String(raw);
     out.push(`${key(k)}:${val}`);
   }
   return out.join(";");

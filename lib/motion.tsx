@@ -9,6 +9,7 @@ export type Variants = Record<string, TargetAndTransition>;
 type MV<T = number> = {
   get: () => T;
   set: (v: T) => void;
+  jump: (v: T) => void;
   on: (ev: string, fn: (v: T) => void) => () => void;
 };
 
@@ -19,12 +20,14 @@ function isMV(v: unknown): v is MV<unknown> {
 export function useMotionValue<T>(init: T): MV<T> {
   let v = init;
   const ls = new Set<(n: T) => void>();
+  const set = (n: T) => {
+    v = n;
+    ls.forEach((fn) => fn(n));
+  };
   return {
     get: () => v,
-    set: (n) => {
-      v = n;
-      ls.forEach((fn) => fn(n));
-    },
+    set,
+    jump: set,
     on: (_ev, fn) => {
       ls.add(fn);
       return () => ls.delete(fn);
@@ -73,8 +76,8 @@ const STRIP = [
   "whileTap",
 ] as const;
 
-function applyStyle(el: HTMLElement, style: Record<string, unknown> | undefined) {
-  if (!style) return;
+function applyStyle(el: HTMLElement, style: Record<string, unknown> | string | undefined) {
+  if (!style || typeof style === "string") return;
   for (const [k, raw] of Object.entries(style)) {
     const v = isMV(raw) ? raw.get() : raw;
     if (v == null) continue;
