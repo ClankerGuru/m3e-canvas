@@ -19,14 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: oven-sh/setup-bun@v2
         with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
+          bun-version: "1.4.1"
+      - run: bun install --frozen-lockfile
       - name: Build static site
         # Project sites live under /<repo>; user sites (<user>.github.io) use "".
-        run: npm run build
+        run: bun run build
         env:
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
       - run: touch out/.nojekyll
