@@ -1008,6 +1008,81 @@ function Body({ item, p }: { item: Item; p: Palette }) {
       );
     }
 
+    case "select": {
+      const filled = item.variant === "filled";
+      const value = item.selected === undefined ? undefined : item.tabs?.[item.selected]?.label;
+      return (
+        <div style={s({ position: "relative", height: "100%" })}>
+          <div style={s({ display: "flex", alignItems: "center", gap: 12, padding: "0 12px 0 16px", height: "100%" })}>
+            {item.icon && <Icon name={item.icon} size={24} color={p.onSurfaceVariant} />}
+            <span style={s({ flex: 1, minWidth: 0, fontSize: 16, color: value ? p.onSurface : p.onSurfaceVariant, paddingTop: value && filled ? 16 : 0, ...ellipsis })}>
+              {value ?? item.label}
+            </span>
+            <Icon name="arrow_drop_down" size={24} color={p.onSurfaceVariant} />
+          </div>
+          {value && hasLabel && (
+            <span style={s({ position: "absolute", left: item.icon ? 52 : 16, top: filled ? 8 : -8, fontSize: 12, lineHeight: "16px", color: p.onSurfaceVariant, background: filled ? "transparent" : p.surface, padding: filled ? 0 : "0 4px", marginLeft: filled ? 0 : -4 })}>
+              {item.label}
+            </span>
+          )}
+          {filled && <span style={s({ position: "absolute", left: 0, right: 0, bottom: 0, height: 1, background: p.onSurfaceVariant })} />}
+        </div>
+      );
+    }
+
+    case "camera":
+      return (
+        <div style={s({ position: "relative", height: "100%", color: p.inverseOnSurface })}>
+          {(["left", "right"] as const).map((side) =>
+            (["top", "bottom"] as const).map((edge) => (
+              <div
+                style={s({
+                  position: "absolute",
+                  [side]: 24,
+                  [edge]: 24,
+                  width: 28,
+                  height: 28,
+                  opacity: 0.7,
+                  [`border${side === "left" ? "Left" : "Right"}`]: `3px solid ${p.inverseOnSurface}`,
+                  [`border${edge === "top" ? "Top" : "Bottom"}`]: `3px solid ${p.inverseOnSurface}`,
+                })}
+              />
+            )),
+          )}
+          <div style={s({ position: "absolute", inset: 0, display: "grid", placeItems: "center", opacity: 0.5 })}>
+            {item.icon && <Icon name={item.icon} size={40} />}
+          </div>
+          <div style={s({ position: "absolute", left: 0, right: 0, bottom: 20, display: "grid", placeItems: "center" })}>
+            <div style={s({ width: 64, height: 64, borderRadius: 32, border: `4px solid ${p.inverseOnSurface}`, display: "grid", placeItems: "center" })}>
+              <div style={s({ width: 48, height: 48, borderRadius: 24, background: p.inverseOnSurface })} />
+            </div>
+          </div>
+        </div>
+      );
+
+    case "map":
+      return (
+        <div style={s({ position: "relative", height: "100%", overflow: "hidden" })}>
+          <svg width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }} aria-hidden>
+            <rect width="400" height="300" fill={p.surfaceContainerLow} />
+            <path d="M-20 210 C 80 170, 140 260, 240 220 S 380 150, 430 190 L 430 240 C 380 200, 300 260, 240 250 S 120 230, -20 250 Z" fill={p.primaryContainer} opacity={0.6} />
+            {[
+              [20, 20, 90, 60], [130, 20, 110, 60], [260, 20, 120, 60],
+              [20, 100, 90, 70], [130, 100, 60, 70], [210, 100, 170, 70],
+              [20, 190, 60, 40], [300, 200, 80, 30],
+            ].map(([x, y, w, h]) => (
+              <rect x={x} y={y} width={w} height={h} rx={6} fill={p.surfaceContainerHighest} />
+            ))}
+            <path d="M0 90 H400 M110 0 V300 M250 0 V300" stroke={p.surface} stroke-width={10} fill="none" />
+            <path d="M0 90 H400 M110 0 V300 M250 0 V300" stroke={p.outlineVariant} stroke-width={1} fill="none" opacity={0.6} />
+            <g transform="translate(200 150)">
+              <path d="M0 24 C -14 6, -20 -2, -20 -12 A 20 20 0 0 1 20 -12 C 20 -2, 14 6, 0 24 Z" fill={p.primary} />
+              <circle cx="0" cy="-12" r="7" fill={p.onPrimary} />
+            </g>
+          </svg>
+        </div>
+      );
+
     case "loadingIndicator": {
       const s = item.size ?? 48;
       return (
@@ -1045,6 +1120,7 @@ function boxStyle(item: Item, p: Palette): CSSProperties {
       if (item.variant === "elevated") return { background: p.surfaceContainerLow, border: "none" };
       return { background: p.surfaceContainerHighest, border: "none" };
     case "textField":
+    case "select":
       return item.variant === "filled"
         ? { background: p.surfaceContainerHighest, border: "none", color: p.onSurface }
         : { background: p.surface, border: `1px solid ${p.outline}`, color: p.onSurface };
@@ -1065,7 +1141,10 @@ function boxStyle(item: Item, p: Palette): CSSProperties {
     case "snackbar":
       return { background: p.inverseSurface, border: "none", color: p.inverseOnSurface };
     case "image":
+    case "map":
       return { background: p.surfaceContainerHighest, border: "none" };
+    case "camera":
+      return { background: p.inverseSurface, border: "none", color: p.inverseOnSurface };
     case "listItem": {
       const t = item.fill ?? "surfaceContainerLow";
       return { background: p[t], border: "none", color: onToken(t, p) };

@@ -1,7 +1,7 @@
-import type { CSSProperties } from "@/lib/hooks";
-import { FAB_MENU_TABS, KIND_TEXT, NAV_TABS, TAB_LABELS, getLang, t } from "./i18n";
-import { schemeFromSeed } from "./color";
-import type { Contrast } from "./color";
+import type { CSSProperties } from "./css";
+import { FAB_MENU_TABS, KIND_TEXT, NAV_TABS, TAB_LABELS, getLang, t, SELECT_OPTIONS } from "./i18n";
+import type { Lang } from "./i18n";
+import { Contrast, schemeFromSeed } from "./color";
 
 /* ---------- geometry ---------- */
 export const H = 56; // M3 medium button height (dp)
@@ -327,7 +327,32 @@ export const FONTS: { key: FontKey; label: string; family: string; /** Google Fo
   { key: "system", label: "System", family: "system-ui, -apple-system, 'Segoe UI', sans-serif" },
 ];
 
-export const fontFamilyOf = (f: FontKey) => FONTS.find((x) => x.key === f)?.family ?? FONTS[0].family;
+/** The Noto Sans face that covers a language's script, spliced in behind the chosen
+ *  face so CJK text renders the same on every OS. English needs none. */
+export const LANG_FONT: Record<Lang, { family: string; google: string } | null> = {
+  ja: { family: "'Noto Sans JP'", google: "Noto+Sans+JP:wght@400;500;600;700" },
+  zh: { family: "'Noto Sans SC'", google: "Noto+Sans+SC:wght@400;500;600;700" },
+  ko: { family: "'Noto Sans KR'", google: "Noto+Sans+KR:wght@400;500;600;700" },
+  en: null,
+};
+
+/** a family list with the language's Noto face placed before the generic fallbacks */
+const withLangFont = (family: string, lang?: Lang) => {
+  const extra = lang ? LANG_FONT[lang]?.family : undefined;
+  if (!extra) return family;
+  const parts = family.split(",").map((s) => s.trim());
+  const at = parts.findIndex((s) => /^(system-ui|-apple-system|Georgia|serif|sans-serif)$/.test(s));
+  parts.splice(at < 0 ? parts.length : at, 0, extra);
+  return parts.join(", ");
+};
+
+/** the chosen face, with the language's Noto face behind it; the system font is left to the device */
+export const fontFamilyOf = (f: FontKey, lang?: Lang) => {
+  const family = FONTS.find((x) => x.key === f)?.family ?? FONTS[0].family;
+  return f === "system" ? family : withLangFont(family, lang);
+};
+/** the editor's own font: Roboto, then the language's Noto face */
+export const uiFontFamily = (lang?: Lang) => withLangFont("Roboto, system-ui, sans-serif", lang);
 
 export const CONTRASTS: { key: Contrast; label: string }[] = [
   { key: "standard", label: "Standard" },
@@ -408,11 +433,14 @@ export type Kind =
   | "dialog"
   | "snackbar"
   | "textField"
+  | "select"
   | "switch"
   | "checkbox"
   | "slider"
   | "text"
   | "image"
+  | "camera"
+  | "map"
   | "divider"
   | "loadingIndicator"
   | "linearProgress"
@@ -501,7 +529,7 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     noun: "ボタン",
     category: "actions",
     paletteIcon: "buttons_alt",
-    w: 0,
+    w: 128,
     h: H,
     radius: R_FULL,
     hasVariant: true,
@@ -509,6 +537,7 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     hasSupporting: false,
     hasIcon: true,
     connect: { axis: "x", outer: R_FULL, inner: R_INNER, family: "button" },
+    size: { min: 64, max: PHONE_W, step: 4, icon: "width", presets: [HALF_W, CONTENT_W] },
     defLabel: "ボタン",
     defIcon: "add",
   },
@@ -660,13 +689,15 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     category: "containment",
     paletteIcon: "web_asset",
     w: CONTENT_W,
-    h: 188,
+    h: 223,
     radius: 20,
     hasVariant: true,
     hasLabel: true,
     hasSupporting: true,
     hasIcon: true,
     size: { min: 160, max: PHONE_W, step: 4, icon: "width", presets: WIDTH_PRESETS },
+    size2: { min: 96, max: PHONE_H, step: 4, icon: "height", presets: [120, 188, 280] },
+    hasFill: true,
     defLabel: "カードの見出し",
     defIcon: "image",
     defSupporting: "補足テキストがここに入ります。",
@@ -745,19 +776,40 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defSize: CONTENT_W,
     defVariant: "outlined",
   },
+  select: {
+    label: "Dropdown",
+    noun: "ドロップダウン",
+    category: "inputs",
+    paletteIcon: "arrow_drop_down_circle",
+    w: CONTENT_W,
+    h: 56,
+    radius: 16,
+    hasVariant: true,
+    hasLabel: true,
+    hasSupporting: true,
+    hasIcon: true,
+    hasTabs: true,
+    size: { min: 160, max: PHONE_W, step: 4, icon: "width", presets: WIDTH_PRESETS },
+    defLabel: "ラベル",
+    defIcon: null,
+    defSupporting: "",
+    defSize: CONTENT_W,
+    defVariant: "outlined",
+  },
   switch: {
     label: "Switch",
     noun: "スイッチ",
     category: "inputs",
     paletteIcon: "toggle_on",
-    w: 0,
-    h: 32,
+    w: 160,
+    h: 48,
     radius: 16,
     hasVariant: false,
     hasLabel: true,
     hasSupporting: false,
     hasIcon: false,
     hasChecked: true,
+    size: { min: 120, max: PHONE_W, step: 4, icon: "width", presets: WIDTH_PRESETS },
     defLabel: "通知",
     defIcon: null,
   },
@@ -828,6 +880,42 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "",
     defIcon: "image",
     defSize: 200,
+  },
+  camera: {
+    label: "Camera",
+    noun: "カメラ",
+    category: "content",
+    paletteIcon: "photo_camera",
+    w: CONTENT_W,
+    h: Math.round((CONTENT_W * 4) / 3),
+    radius: 20,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: true,
+    size: { min: 96, max: PHONE_W, step: 4, icon: "width", presets: [HALF_W, CONTENT_W, PHONE_W] },
+    size2: { min: 96, max: PHONE_H, step: 4, icon: "height", presets: [280, 507, PHONE_H] },
+    defLabel: "",
+    defIcon: "photo_camera",
+    defSize: CONTENT_W,
+  },
+  map: {
+    label: "Map",
+    noun: "地図",
+    category: "content",
+    paletteIcon: "map",
+    w: CONTENT_W,
+    h: Math.round((CONTENT_W * 3) / 4),
+    radius: 20,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: true,
+    size: { min: 96, max: PHONE_W, step: 4, icon: "width", presets: [HALF_W, CONTENT_W, PHONE_W] },
+    size2: { min: 96, max: PHONE_H, step: 4, icon: "height", presets: [200, 285, PHONE_H] },
+    defLabel: "",
+    defIcon: "map",
+    defSize: CONTENT_W,
   },
   divider: {
     label: "Divider",
@@ -1025,12 +1113,15 @@ export const KIND_ORDER: Kind[] = [
   "dialog",
   "snackbar",
   "textField",
+  "select",
   "switch",
   "checkbox",
   "radio",
   "slider",
   "text",
   "image",
+  "camera",
+  "map",
   "badge",
   "divider",
   "loadingIndicator",
@@ -1052,7 +1143,15 @@ export type Item = {
   size?: number;
   radiusTop?: number;
   radiusBottom?: number;
+  /** boxes only: each corner on its own, when the pairs above are not enough */
+  corners?: Radii;
   tabs?: NavTab[];
+  /** navigation bars, rails and tab rows: index of the selected destination (0 when unset) */
+  selected?: number;
+  /** list items: a switch at the trailing end instead of an icon; `checked` is its state */
+  switch?: boolean;
+  /** cards: no image area at the top; `src` puts a picture in it */
+  noImage?: boolean;
   /** on/off state for switches, checkboxes and chips */
   checked?: boolean;
   /** a switch whose handle stays plain when on, without the check icon */
@@ -1177,6 +1276,9 @@ export const COLOR_TOKENS: { key: ColorToken; label: string }[] = [
 ];
 
 /** readable foreground for a chosen background token */
+/** the background a card draws when no token is set: it follows the variant */
+export const cardFillOf = (it: Item): ColorToken => it.fill ?? (it.variant === "outlined" ? "surface" : it.variant === "elevated" ? "surfaceContainerLow" : "surfaceContainerHighest");
+
 export function onToken(t: ColorToken, p: Palette): string {
   switch (t) {
     case "primary":
@@ -1209,7 +1311,22 @@ export type Frame = {
   noteHistory?: string[];
   /** frame ids reached by swiping in each direction */
   swipe?: Partial<Record<SwipeDir, string>>;
+  /** where Tidy puts the body rows between the bars: from the top unless the author says otherwise */
+  place?: Place;
 };
+
+/** how Tidy stacks the body of a screen: from the top, centered, against the bottom bar, or spread out */
+export type Place = "top" | "center" | "bottom" | "spread";
+export const PLACES: { key: Place; icon: string }[] = [
+  { key: "top", icon: "vertical_align_top" },
+  { key: "center", icon: "vertical_align_center" },
+  { key: "bottom", icon: "vertical_align_bottom" },
+  { key: "spread", icon: "expand" },
+];
+export const isPlace = (v: unknown): v is Place => v === "top" || v === "center" || v === "bottom" || v === "spread";
+
+/** how a selection of parts is lined up: an edge or centre to share, or equal gaps along an axis */
+export type AlignKind = "left" | "centerH" | "right" | "distributeH" | "top" | "centerV" | "bottom" | "distributeV";
 
 export type FramePreset = "phone" | "desktop";
 export const frameSizeOf = (f: Frame) => ({ w: f.w ?? PHONE_W, h: f.h ?? PHONE_H });
@@ -1246,7 +1363,7 @@ export function fitHeight(it: Item, screenH: number): Item {
 export function carryItemSize(it: Item, from: { w: number; h: number }, to: { w: number; h: number }): Item {
   const spec = KIND_SPEC[it.kind];
   const patch: Partial<Item> = {};
-  const keepsShape = it.kind === "card" || it.kind === "image";
+  const keepsShape = it.kind === "card" || it.kind === "image" || it.kind === "camera" || it.kind === "map";
   if (spec.size && (spec.size.icon === "width" || keepsShape)) {
     /* only a size that is a width; a text size or an icon button's square are left alone */
     const cur = it.size ?? spec.defSize ?? spec.w;
@@ -1262,6 +1379,11 @@ export function carryItemSize(it: Item, from: { w: number; h: number }, to: { w:
     else if (cur > contentWidth(to.w) && it.kind !== "box") patch.size = contentWidth(to.w);
   }
   if ((it.kind === "box" || it.kind === "navRail") && (it.size2 ?? spec.h) === from.h) patch.size2 = to.h;
+  /* a camera or map the author gave a height keeps its aspect ratio when its width changes */
+  if ((it.kind === "camera" || it.kind === "map") && it.size2 !== undefined && patch.size !== undefined) {
+    const cur = it.size ?? spec.defSize ?? spec.w;
+    patch.size2 = Math.round((it.size2 * patch.size) / cur);
+  }
   return Object.keys(patch).length ? { ...it, ...patch } : it;
 }
 
@@ -1302,10 +1424,12 @@ export function groupBounds(g: Group, widths: Record<string, number>) {
 
 /** A free group written as the runs it holds: parts of one family that still sit
  *  one GAP apart along their axis stay a connected run, everything else is a run
- *  of one. Layout logic, the prompt and ungrouping all see the same runs. */
+ *  of one. Layout logic, the prompt and ungrouping all see the same runs, in the
+ *  group's own order (later = drawn on top), which is what the layers panel edits. */
 export function explodeGroup(g: Group, widths: Record<string, number>): Group[] {
   if (!g.free) return [g];
   const placed = [...layoutOf(g, widths)].sort((a, b) => a.y - b.y || a.x - b.x);
+  const rank = new Map(g.items.map((it, i) => [it.id, i]));
   const used = new Set<string>();
   const out: Group[] = [];
   const near = (a: number, b: number) => Math.abs(a - b) <= 3;
@@ -1327,9 +1451,12 @@ export function explodeGroup(g: Group, widths: Record<string, number>): Group[] 
       run.push(next);
       last = next;
     }
-    out.push({ id: `${g.id}:${start.item.id}`, x: start.x, y: start.y, axis, items: run.map((r) => r.item) });
+    /* named after the member the group lists first, so the name survives a reorder */
+    const anchor = run.reduce((a, b) => ((rank.get(a.item.id) ?? 0) <= (rank.get(b.item.id) ?? 0) ? a : b));
+    out.push({ id: `${g.id}:${anchor.item.id}`, x: start.x, y: start.y, axis, items: run.map((r) => r.item) });
   }
-  return out;
+  const first = (r: Group) => Math.min(...r.items.map((it) => rank.get(it.id) ?? 0));
+  return out.sort((a, b) => first(a) - first(b));
 }
 
 /** corners of one part of a run: round outside, small where it meets a neighbour */
@@ -1415,6 +1542,8 @@ export function defaultTabsFor(kind: Kind): NavTab[] {
   switch (kind) {
     case "tabs":
       return TAB_LABELS[getLang()].map((label) => ({ icon: "", label }));
+    case "select":
+      return SELECT_OPTIONS[getLang()].map((label) => ({ icon: "", label }));
     case "fabMenu":
       return FAB_MENU_TABS[getLang()].map((t) => ({ ...t }));
     case "toolbar":
@@ -1451,7 +1580,7 @@ export function makeItem(kind: Kind): Item {
     it.radiusBottom = 0;
   }
   if (kind === "navRail") it.tabs = defaultTabs();
-  if (kind === "tabs" || kind === "fabMenu") it.tabs = defaultTabsFor(kind);
+  if (kind === "tabs" || kind === "fabMenu" || kind === "select") it.tabs = defaultTabsFor(kind);
   if (kind === "toolbar") it.tabs = defaultTabsFor(kind).slice(0, 4);
   return it;
 }
@@ -1463,10 +1592,11 @@ export function sizeOf(it: Item, widths: Record<string, number>) {
   const s = KIND_SPEC[it.kind];
   const n = it.size ?? s.defSize ?? s.w;
   switch (it.kind) {
+    case "switch":
     case "button":
+      return { w: it.size ?? widths[it.id] ?? s.w, h: s.h };
     case "extendedFab":
     case "chip":
-    case "switch":
     case "checkbox":
     case "splitButton":
     case "radio":
@@ -1487,6 +1617,10 @@ export function sizeOf(it: Item, widths: Record<string, number>) {
     case "loadingIndicator":
     case "image":
       return { w: n, h: n };
+    case "camera":
+      return { w: n, h: it.size2 ?? Math.round((n * 4) / 3) };
+    case "map":
+      return { w: n, h: it.size2 ?? Math.round((n * 3) / 4) };
     case "topAppBar":
       /* the status-bar inset belongs to a phone: a bar wider than one has no status bar above it.
        * (An Android tablet does; the canvas leaves that to the prompt.) */
@@ -1495,12 +1629,13 @@ export function sizeOf(it: Item, widths: Record<string, number>) {
     case "bottomNav":
     case "listItem":
     case "textField":
+    case "select":
     case "slider":
     case "linearProgress":
     case "divider":
       return { w: n, h: s.h };
     case "card":
-      return { w: n, h: Math.round(n * 0.5875) };
+      return { w: n, h: it.size2 ?? Math.round(n * 0.5875) };
     case "box":
       return { w: n, h: it.size2 ?? s.h };
     case "navRail":
@@ -1516,6 +1651,8 @@ export function baseRadii(it: Item): Radii {
   const s = KIND_SPEC[it.kind];
   switch (it.kind) {
     case "box":
+      if (it.corners) return { ...it.corners };
+    // falls through
     case "bottomNav":
     case "topAppBar":
     case "tabs": {
@@ -1539,6 +1676,8 @@ export function baseRadii(it: Item): Radii {
     case "loadingIndicator":
       return uniformRadii((it.size ?? 48) / 2);
     case "image":
+    case "camera":
+    case "map":
     case "card":
       return uniformRadii(it.radiusTop ?? scaleR(s.radius));
     case "badge":

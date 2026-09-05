@@ -24,6 +24,8 @@ import { DEFAULT_AI, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, propo
 import type { AiSettings } from "@/lib/ai";
 import { barSlotOf, carryFrame, pullInto, tidyFrame } from "@/lib/tidy";
 import { readProject, saveProject } from "@/lib/project";
+import { hasShareHash, readShareHash, clearShareHash } from "@/lib/share";
+import { ShareButton, ShareDialog } from "@/components/ShareMenu";
 import { SEED_FRAMES, hydrateDoc, mobileHomeFrame, mobileSeed, seed } from "@/lib/board";
 import { createHistory } from "@/lib/history";
 import type { Snapshot } from "@/lib/history";
@@ -217,6 +219,8 @@ export default function Page() {
   const [aiFrameId, setAiFrameId] = useState<string | null>(null);
   /** the "applied" confirmation beside the tidy button */
   const [aiNote, setAiNote] = useState<{ text: string; icon: string } | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareIdea, setShareIdea] = useState("");
   const projectFileRef = useRef<HTMLInputElement>(null);
   const aiNoteTimer = useRef<number | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
@@ -1416,6 +1420,57 @@ export default function Page() {
     setSelectedIds([copy.id]);
   }, [selected, selectedIds, itemRects, snapshot]);
 
+  const clipboardRef = useRef<{ group: Group; dx: number; dy: number; frameId: string | null } | null>(null);
+
+  const copySelected = useCallback(() => {
+    if (!selected()) return;
+    const ids = new Set(selectedIds());
+    const g = groupsRef.current.find((x) => x.items.some((it) => it.id === selected().id));
+    if (!g) return;
+    let group: Group;
+    if (g.items.every((it) => ids.has(it.id))) group = structuredClone(g);
+    else {
+      const rect = itemRects().find((r) => r.id === selected().id);
+      if (!rect) return;
+      group = { id: g.id, x: rect.l, y: rect.t, axis: connectSpecOf(selected())?.axis ?? "x", items: [structuredClone(selected())] };
+    }
+    const f = frameOfGroup(g, framesRef.current, widthsRef.current);
+    clipboardRef.current = { group, dx: f ? group.x - f.x : 0, dy: f ? group.y - f.y : 0, frameId: f?.id ?? null };
+  }, [selected, selectedIds, itemRects]);
+
+  const pasteClipboard = useCallback(() => {
+    const clip = clipboardRef.current;
+    if (!clip) return;
+    const fs = framesRef.current;
+    let target = selectedFrameId() ? fs.find((f) => f.id === selectedFrameId()) : undefined;
+    if (!target && selected()) {
+      const g = groupsRef.current.find((x) => x.items.some((it) => it.id === selected().id));
+      if (g) target = frameOfGroup(g, fs, widthsRef.current) ?? undefined;
+    }
+    if (!target) target = fs.find((f) => f.id === clip.frameId);
+    let x = target && clip.frameId ? target.x + clip.dx : clip.group.x;
+    let y = target && clip.frameId ? target.y + clip.dy : clip.group.y;
+    while (groupsRef.current.some((g) => g.x === x && g.y === y)) {
+      x += 24;
+      y += 24;
+    }
+    const idMap = new Map(clip.group.items.map((it) => [it.id, uid()]));
+    const pos: Record<string, { x: number; y: number }> | undefined = clip.group.pos ? {} : undefined;
+    if (pos) for (const it of clip.group.items) pos[idMap.get(it.id)!] = clip.group.pos?.[it.id] ?? { x: 0, y: 0 };
+    const copy: Group = {
+      ...structuredClone(clip.group),
+      id: uid(),
+      x,
+      y,
+      pos,
+      items: clip.group.items.map((it) => ({ ...structuredClone(it), id: idMap.get(it.id)! })),
+    };
+    snapshot();
+    setGroups((prev) => [...prev, copy]);
+    setSelectedIds(copy.items.map((it) => it.id));
+    setSelectedFrameId(null);
+  }, [selected, selectedFrameId, snapshot]);
+
   /** the free group the whole selection belongs to, if it is exactly one */
   const selectedGroup = useMemo(() => {
     if (selectedIds().length === 0) return null;
@@ -1544,7 +1599,7 @@ export default function Page() {
     hadDocRef.current = true;
     applyDoc(next, true);
     if (!mobileRef.current) {
-      const nextFrame = next.frame() === "blank" ? "blank" : "phone";
+      const nextFrame = next.frame === "blank" ? "blank" : "phone";
       setFrame(nextFrame);
       frameRef.current = nextFrame;
     }
@@ -1557,8 +1612,28 @@ export default function Page() {
     queueMicrotask(() => fitRef.current());
   };
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let active = true;
+    const offer = () => {
+      if (!hasShareHash(window.location.hash)) return;
+      void readShareHash(window.location.hash).then((next) => {
+        if (!active) return;
+        clearShareHash();
+        if (next) importDoc(next);
+        else showToast(t("invalidProject", lang()), 3000, "error");
+      });
+    };
+    offer();
+    window.addEventListener("hashchange", offer);
+    return () => {
+      active = false;
+      window.removeEventListener("hashchange", offer);
+    };
+  }, []);
+
   const selectedFrame = useMemo(
-    () => frames().find((f) => f.id === selectedFrameId) ?? null,
+    () => frames().find((f) => f.id === selectedFrameId()) ?? null,
     [frames, selectedFrameId],
   );
   const selectedPartFrame = useMemo(() => {
@@ -2044,8 +2119,20 @@ export default function Page() {
       }
       if (mod && e.key.toLowerCase() === "d") {
         e.preventDefault();
-        if (selectedIds().length === 0 && selectedFrameId) duplicateFrameRef.current(selectedFrameId);
+        if (selectedIds().length === 0 && selectedFrameId()) duplicateFrameRef.current(selectedFrameId());
         else duplicateSelected();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "c") {
+        if (selectedIds().length === 0 || window.getSelection()?.toString()) return;
+        e.preventDefault();
+        copySelected();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "v") {
+        if (!clipboardRef.current) return;
+        e.preventDefault();
+        pasteClipboard();
         return;
       }
       if (mod && e.key.toLowerCase() === "g") {
@@ -2979,8 +3066,9 @@ export default function Page() {
             tidy={tidyState() ?? undefined}
             onTidy={tidyTarget() ? () => tidy(tidyTarget) : undefined}
             note={aiNote()}
-            onSaveProject={() => saveProject(doc)}
+            onSaveProject={() => saveProject(doc())}
             onOpenProject={() => projectFileRef.current?.click()}
+            onShare={() => setShareOpen(true)}
             rightInset={showRight ? rightW : 0}
             mobile={isMobile()}
             onSettings={() => setSheet(sheet() === "settings" ? null : "settings")}
@@ -3234,6 +3322,22 @@ export default function Page() {
           }}
         />
 
+        <ShareDialog
+          p={p()}
+          doc={doc()}
+          aiReady={aiReady}
+          idea={shareIdea()}
+          onIdea={setShareIdea}
+          open={shareOpen()}
+          onClose={() => setShareOpen(false)}
+          onDraft={() => setShareOpen(false)}
+          onSetupAi={() => {
+            setShareOpen(false);
+            setRightTab("edit");
+            setRightOpen(true);
+          }}
+        />
+
         <ConfirmDialog
           open={pendingImport() !== null}
           icon="file_open"
@@ -3242,7 +3346,7 @@ export default function Page() {
           p={p()}
           onCancel={() => setPendingImport(null)}
           onConfirm={() => {
-            if (pendingImport()) importDoc(pendingImport);
+            if (pendingImport()) importDoc(pendingImport());
             setPendingImport(null);
           }}
         />
