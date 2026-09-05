@@ -266,8 +266,8 @@ export function Toolbar({
           gap: 10,
           pointerEvents: "none",
           zIndex: 40,
-          flexWrap: "nowrap",
-          padding: "0 72px",
+          flexWrap: "wrap",
+          padding: "0 12px",
         })}
       >
         <Pill p={p}>
