@@ -7,7 +7,8 @@
     "dev": "bun --hot index.ts",
     "build": "bun run build.ts",
     "start": "bunx serve dist",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "test": "bun test"
   },
   "dependencies": {
     "bun-plugin-tailwind": "^0.1.2",
@@ -27,7 +28,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lnkiai/m3e-canvas.git"
+    "url": "https://github.com/ClankerGuru/m3e-canvas.git"
   },
-  "homepage": "https://lnkiai.github.io/m3e-canvas/"
+  "homepage": "https://clankerguru.github.io/m3e-canvas/"
 }

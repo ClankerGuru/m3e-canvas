@@ -21,6 +21,7 @@ export function variantsOf(kind: Kind): { key: Variant; label: string }[] {
         { key: "outlined", label: "Outlined" },
       ];
     case "textField":
+    case "select":
       return [
         { key: "outlined", label: "Outlined" },
         { key: "filled", label: "Filled" },
@@ -636,10 +637,17 @@ export function Inspector({
     const next: NavTab[] = [];
     const defaults = defaultTabsFor(item.kind);
     for (let i = 0; i < n; i++) next.push(tabs[i] ? { ...tabs[i] } : { ...defaults[i % defaults.length] });
-    onChange({ tabs: next });
+    onChange({ tabs: next, selected: item.selected !== undefined && item.selected >= n ? undefined : item.selected });
   };
-  /** entries of a tab row have no icon; toolbar buttons have no label */
-  const tabIcons = item.kind !== "tabs";
+  const isSelect = item.kind === "select";
+  const hasSelected = item.kind === "bottomNav" || item.kind === "navRail" || item.kind === "tabs" || isSelect;
+  const selectedTab = isSelect && item.selected === undefined ? -1 : Math.min(item.selected ?? 0, Math.max(0, tabs.length - 1));
+  const removeOption = (i: number) => {
+    const sel = item.selected;
+    onChange({ tabs: tabs.filter((_, j) => j !== i), selected: sel === undefined ? undefined : sel === i ? undefined : sel > i ? sel - 1 : sel });
+  };
+  /** entries of a tab row have no icon; toolbar buttons have no label; dropdown options have no icon */
+  const tabIcons = item.kind !== "tabs" && item.kind !== "select";
   const tabLabels = item.kind !== "toolbar";
   const mainSlots = slots.filter((s) => !s.key.startsWith("tab:"));
 
@@ -652,6 +660,8 @@ export function Inspector({
     item.kind === "topAppBar" ||
     item.kind === "card" ||
     item.kind === "image" ||
+    item.kind === "camera" ||
+    item.kind === "map" ||
     item.kind === "box";
 
   return (
@@ -747,19 +757,31 @@ export function Inspector({
       )}
 
       {spec.hasTabs && !editOn && (
-        <Section id="tabs" icon="view_column" title={t("tabs", lang)} p={p}>
-          <Segmented
-            options={(item.kind === "toolbar" ? [2, 3, 4, 5, 6] : [2, 3, 4, 5]).map((n) => ({ key: String(n), label: String(n) }))}
-            value={String(tabs.length)}
-            onChange={(k) => setTabCount(Number(k))}
-            p={p}
-            height={36}
-          />
+        <Section id="tabs" icon={isSelect ? "list" : "view_column"} title={t(isSelect ? "options" : "tabs", lang)} p={p}>
+          {!isSelect && (
+            <Segmented
+              options={(item.kind === "toolbar" ? [2, 3, 4, 5, 6] : [2, 3, 4, 5]).map((n) => ({ key: String(n), label: String(n) }))}
+              value={String(tabs.length)}
+              onChange={(k) => setTabCount(Number(k))}
+              p={p}
+              height={36}
+            />
+          )}
           <div style={s({ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 })}>
             {tabs.map((tab, i) => {
               const on = slotKey() === `tab:${i}` && pickerOpen;
               return (
                 <div key={i} style={s({ display: "flex", gap: 6, alignItems: "center" })}>
+                  {hasSelected && (
+                    <IconBtn
+                      icon={selectedTab === i ? "radio_button_checked" : "radio_button_unchecked"}
+                      p={p}
+                      size={40}
+                      on={selectedTab === i}
+                      onClick={() => onChange({ selected: isSelect && selectedTab === i ? undefined : i })}
+                      title={t(isSelect ? "selectedOption" : "selectedTab", lang)}
+                    />
+                  )}
                   {tabIcons && (
                   <button
                     onClick={() => {
@@ -789,10 +811,23 @@ export function Inspector({
                   {tabIcons && tab.icon && (
                     <IconBtn icon="close" p={p} size={40} onClick={() => onChange(setIconSlot(item, `tab:${i}`, null))} title={t("noIcon", lang)} />
                   )}
+                  {isSelect && tabs.length > 1 && (
+                    <IconBtn icon="close" p={p} size={40} onClick={() => removeOption(i)} title={t("removeOption", lang)} />
+                  )}
                 </div>
               );
             })}
           </div>
+          {isSelect && (
+            <button
+              onClick={() => onChange({ tabs: [...tabs, { ...defaultTabsFor(item.kind)[tabs.length % defaultTabsFor(item.kind).length] }] })}
+              class="m3-press"
+              style={s({ marginTop: 8, height: 40, width: "100%", borderRadius: 20, border: `1px solid ${p.outline}`, background: "transparent", color: p.primary, fontSize: 13, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 })}
+            >
+              <Icon name="add" size={18} />
+              {t("addOption", lang)}
+            </button>
+          )}
         </Section>
       )}
 
@@ -1042,7 +1077,7 @@ export function Inspector({
                 )}
               </>
             )}
-            {hasRadius && (item.kind === "card" || item.kind === "image") && (
+            {hasRadius && (item.kind === "card" || item.kind === "image" || item.kind === "camera" || item.kind === "map") && (
               <Slider
                 icon="rounded_corner"
                 title={t("cornerRadius", lang)}

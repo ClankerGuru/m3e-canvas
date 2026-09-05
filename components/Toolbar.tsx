@@ -8,6 +8,7 @@ import type { TidyState } from "./ui";
 import { Icon } from "./M3Node";
 import { Popover } from "./Menus";
 import { t, useLang } from "@/lib/i18n";
+import { ShareButton } from "./ShareMenu";
 
 export type Mode = "select" | "hand";
 
@@ -84,6 +85,7 @@ export function Toolbar({
   note,
   onSaveProject,
   onOpenProject,
+  onShare,
 }: {
   p: Palette;
   mode: Mode;
@@ -114,6 +116,7 @@ export function Toolbar({
   note?: { text: string; icon: string } | null;
   onSaveProject?: () => void;
   onOpenProject?: () => void;
+  onShare?: () => void;
 }) {
   const lang = useLang();
   if (mobile) {
@@ -303,6 +306,7 @@ export function Toolbar({
             size={40}
             fill
           />
+          {onShare && <ShareButton p={p} onClick={onShare} />}
         </Pill>
 
         <Pill p={p}>
