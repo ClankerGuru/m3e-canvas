@@ -9,6 +9,13 @@ export const LANGS: { key: Lang; label: string }[] = [
 ];
 export const isLang = (v: unknown): v is Lang => v === "ja" || v === "en" || v === "zh" || v === "ko";
 
+/** Browser language, same rules the original uses after hydrate. */
+export function detectLang(): Lang {
+  if (typeof navigator === "undefined") return "ja";
+  const nl = (navigator.language ?? "").toLowerCase();
+  return nl.startsWith("zh") ? "zh" : nl.startsWith("ko") ? "ko" : nl.startsWith("ja") ? "ja" : "en";
+}
+
 /* A module-level copy lets non-React helpers (item defaults, prompt text)
  * follow the language without threading it through every call. */
 let current: Lang = "ja";

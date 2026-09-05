@@ -4,6 +4,10 @@ import type { Doc, Kind } from "./tokens";
 
 export const DOC_KEY = "m3e:doc";
 export const UI_KEY = "m3e:ui";
+/** the design a draft or a link replaced, until the author keeps or undoes it */
+export const BEFORE_KEY = "m3e:doc:before";
+/** Web Lock so two tabs do not overwrite each other */
+export const DOC_LOCK = "m3e:doc:editor";
 
 export type StoredUi = {
   view?: { x: number; y: number; z: number };

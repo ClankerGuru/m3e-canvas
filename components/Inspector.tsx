@@ -3,7 +3,7 @@ import { s } from "@/lib/css";
 import { useEffect, useRef, useState } from "@/lib/hooks";
 import { BACK_TARGET, CONTENT_W, HALF_W, KIND_SPEC, PHONE_H, PHONE_W, SWIPE_DIRS, TAPPABLE, TOGGLEABLE, TRANSITIONS, VARIANTS, actionSlotsOf, contentWidth, defaultTabsFor, framePresetOf, frameSizeOf, halfWidth, isPhoneFrame, toggleIcon, iconSlotsOf, setIconSlot, variantStyle } from "@/lib/tokens";
 import type { NavTab, SwipeDir, Transition, Variant } from "@/lib/tokens";
-import type { Action, Frame, FramePreset, Item, Kind, Palette } from "@/lib/tokens";
+import type { Action, Frame, FramePreset, Item, Kind, Palette, Place } from "@/lib/tokens";
 import { IconPicker } from "./IconPicker";
 import { Icon } from "./M3Node";
 import { ButtonRun, CornerIcon, Field, IconBtn, Section, Segmented, SizePresets, Slider, TidyButton, Toggle, TokenChips } from "./ui";
@@ -291,6 +291,7 @@ export function FrameInspector({
   frames,
   tidy,
   onTidy,
+  onPlace,
   ai,
   onSize,
 }: {
@@ -306,6 +307,8 @@ export function FrameInspector({
   /** what the tidy button offers: tidy the screen, undo the last tidy, or nothing (already tidy) */
   tidy: TidyState;
   onTidy: () => void;
+  /** sets where Tidy puts the body of this screen, and tidies */
+  onPlace: (place: Place) => void;
   ai: AiHooks;
   onSize: (preset: FramePreset) => void;
 }) {
@@ -377,7 +380,7 @@ export function FrameInspector({
         <TokenChips value={frame.bg ?? "surface"} onChange={(bg) => onChange({ bg })} p={p} />
       </Section>
       <Section id="frame-tidy" icon="align_space_even" title={t("tidy", lang)} p={p}>
-        <TidyButton state={tidy} onClick={onTidy} p={p} />
+        <TidyButton state={tidy} onClick={onTidy} p={p} place={frame.place} onPlace={onPlace} />
       </Section>
       {frames.length > 1 && (
         <Section id="frame-swipe" icon="swipe" title={t("swipeTo", lang)} p={p}>

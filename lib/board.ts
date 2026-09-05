@@ -3,7 +3,8 @@
 import { KIND_SPEC, NAV_BAR_H, PHONE_H, PHONE_MARGIN, PHONE_W, frameRect, makeItem, normalizeTheme, uid } from "./tokens";
 import type { Doc, Frame, Group, Kind, Palette, Platform, Theme } from "./tokens";
 import { isPlatform } from "./tokens";
-import { t } from "./i18n";
+import { t, SEED_TEXT, getLang } from "./i18n";
+import type { Lang } from "./i18n";
 
 export const SEED_FRAMES: Frame[] = [{ id: "seedF1", name: "Home", x: 0, y: 0 }];
 
@@ -22,23 +23,24 @@ export function migrateGroups(groups: Group[], frames: Frame[]): Group[] {
 }
 
 /** Seed ids are deterministic so server and client render the same markup. */
-export const seed = (): Group[] => {
+export const seed = (lang: Lang = getLang()): Group[] => {
+  const text = SEED_TEXT[lang];
   let n = 0;
   const sid = () => `seed${++n}`;
   const mk = (k: Kind) => ({ ...makeItem(k), id: sid() });
   const bar = mk("topAppBar");
   const a = mk("button");
   const b = mk("button");
-  a.label = "お気に入り";
+  a.label = text.favorite;
   a.icon = "star";
-  b.label = "共有";
+  b.label = text.share;
   b.icon = "share";
   b.variant = "tonal";
-  const rows = ["受信トレイ", "スター付き", "アーカイブ"].map((label, i) => {
+  const rows = [text.inbox, text.starred, text.archive].map((label, i) => {
     const it = mk("listItem");
     it.label = label;
     it.icon = ["inbox", "star", "archive"][i];
-    it.supporting = "サブテキスト";
+    it.supporting = text.supporting;
     return it;
   });
   const nav = mk("bottomNav");
@@ -59,17 +61,18 @@ export const seed = (): Group[] => {
 };
 
 /** The phone version starts with buttons only: that is all it edits. */
-export const mobileSeed = (): Group[] => {
+export const mobileSeed = (lang: Lang = getLang()): Group[] => {
+  const text = SEED_TEXT[lang];
   const mk = (k: Kind) => makeItem(k);
   const a = mk("button");
   const b = mk("button");
   const c = mk("button");
-  a.label = "お気に入り";
+  a.label = text.favorite;
   a.icon = "star";
-  b.label = "共有";
+  b.label = text.share;
   b.icon = "share";
   b.variant = "tonal";
-  c.label = "はじめる";
+  c.label = text.start;
   c.icon = "arrow_forward";
   return [
     { id: uid(), x: PHONE_MARGIN, y: 120, axis: "x", items: [a, b] },
@@ -77,7 +80,7 @@ export const mobileSeed = (): Group[] => {
   ];
 };
 
-export const mobileHomeFrame = (): Frame => ({ id: uid(), name: t("home"), x: 0, y: 0 });
+export const mobileHomeFrame = (lang: Lang = getLang()): Frame => ({ id: uid(), name: t("home", lang), x: 0, y: 0 });
 
 export type Board = {
   groups: Group[];
