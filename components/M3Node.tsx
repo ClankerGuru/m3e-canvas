@@ -388,19 +388,19 @@ function Body({ item, p }: { item: Item; p: Palette }) {
       ) : null;
 
     case "iconButton": {
-      const s = item.size ?? 48;
+      const sz = item.size ?? 48;
       return (
         <div style={s({ display: "grid", placeItems: "center", height: "100%" })}>
-          {item.icon && <Icon name={item.icon} size={Math.round(s / 2)} fill={item.variant === "filled"} />}
+          {item.icon && <Icon name={item.icon} size={Math.round(sz / 2)} fill={item.variant === "filled"} />}
         </div>
       );
     }
 
     case "fab": {
-      const s = item.size ?? 56;
+      const sz = item.size ?? 56;
       return (
         <div style={s({ display: "grid", placeItems: "center", height: "100%" })}>
-          {item.icon && <Icon name={item.icon} size={Math.round(s * 0.42)} />}
+          {item.icon && <Icon name={item.icon} size={Math.round(sz * 0.42)} />}
         </div>
       );
     }

@@ -39,5 +39,24 @@ export function createHistory(max = HISTORY_MAX) {
     return next;
   };
 
-  return { push, pushFor, undo, redo };
+  const clear = () => {
+    past.length = 0;
+    future.length = 0;
+    lastKey = "";
+    lastAt = 0;
+  };
+
+  return {
+    push,
+    pushFor,
+    undo,
+    redo,
+    clear,
+    get canUndo() {
+      return past.length > 0;
+    },
+    get canRedo() {
+      return future.length > 0;
+    },
+  };
 }
