@@ -1569,7 +1569,7 @@ export default function Page() {
 
   /** the screen the tidy button works on: the selected one, or the one under the selected part */
   const tidyTarget = useMemo((): Frame | null => {
-    if (frame() !== "phone" || isMobile) return null;
+    if (frame() !== "phone" || isMobile()) return null;
     if (selectedFrame()) return selectedFrame;
     if (!primaryId) return null;
     const g = groups().find((g) => g.items.some((it) => it.id === primaryId));
@@ -1931,7 +1931,7 @@ export default function Page() {
               <div key={pl.item.id} style={s({ position: "absolute", left: pl.x - f.x, top: pl.y - f.y })}>
                 <M3Static
                   item={pl.item}
-                  palette={p}
+                  palette={p()}
                   radii={corners.get(pl.item.id)}
                   style={MEASURED.includes(pl.item.kind) ? undefined : { width: pl.w, height: pl.h }}
                 />
@@ -1963,7 +1963,7 @@ export default function Page() {
                 <M3Static
                   key={it.id}
                   item={it}
-                  palette={p}
+                  palette={p()}
                   radii={radii}
                   style={MEASURED.includes(it.kind) ? undefined : { width: sizeOf(it, widths).w, height: sizeOf(it, widths).h }}
                 />
@@ -2288,11 +2288,11 @@ export default function Page() {
           transition={instantG ? INSTANT : OPEN}
           style={s({ position: "absolute", left: 0, top: 0 })}
         >
-          {layoutOf(g, widths).map((pl) => (
+          {layoutOf(g, widths()).map((pl) => (
             <div key={pl.item.id} style={s({ position: "absolute", left: pl.x - g.x, top: pl.y - g.y })}>
               <M3Node
                 item={pl.item}
-                palette={p}
+                palette={p()}
                 widths={widths()}
                 radii={corners.get(pl.item.id)}
                 pressed={false}
@@ -2391,7 +2391,7 @@ export default function Page() {
             <M3Node
               key={c.item.id}
               item={c.item}
-              palette={p}
+              palette={p()}
               widths={widths()}
               radii={radii}
               pressed={pressedId() === c.item.id}
@@ -2405,9 +2405,9 @@ export default function Page() {
     );
   };
 
-  const handMode = !isMobile() && (mode() === "hand" || spaceHeld);
-  const panning = gesture?.kind === "pan";
-  const marquee = gesture?.kind === "marquee" && gesture().moved ? gesture : null;
+  const handMode = !isMobile() && (mode() === "hand" || spaceHeld());
+  const panning = gesture()?.kind === "pan";
+  const marquee = gesture()?.kind === "marquee" && gesture().moved ? gesture() : null;
   const canvasBg = frame() === "phone" ? p().surfaceContainerLow : "#ffffff";
 
   const panelStyle: CSSProperties = {
@@ -2419,7 +2419,7 @@ export default function Page() {
     flex: "0 0 auto",
   };
 
-  const showRight = rightOpen && !isMobile();
+  const showRight = rightOpen() && !isMobile();
   const guide = drag()?.active ? drag().guide : null;
   const visibleWorld = (() => {
     const r = canvasRef.current?.getBoundingClientRect();
@@ -2440,8 +2440,8 @@ export default function Page() {
           display: "flex",
           overflow: "hidden",
           background: p().surfaceContainer,
-          cursor: resizing ? "col-resize" : undefined,
-          userSelect: resizing ? "none" : undefined,
+          cursor: resizing() ? "col-resize" : undefined,
+          userSelect: resizing() ? "none" : undefined,
           ["--sb" as string]: p().outlineVariant,
         })}
       >
@@ -2491,7 +2491,7 @@ export default function Page() {
 
         {/* ---- left: rail + parts / layers ---- */}
         {!isMobile() && (
-          <aside style={s({ ...panelStyle, width: leftOpen ? leftW : RAIL_W, flexDirection: "row", transition: "width 200ms cubic-bezier(0.2, 0, 0, 1)" })}>
+          <aside style={s({ ...panelStyle, width: leftOpen() ? leftW() : RAIL_W, flexDirection: "row", transition: "width 200ms cubic-bezier(0.2, 0, 0, 1)" })}>
             <div
               onPointerEnter={() => setRailHover(true)}
               onPointerLeave={() => setRailHover(false)}
@@ -2508,7 +2508,7 @@ export default function Page() {
                 gap: 6,
                 padding: "10px 0",
                 background: p().surfaceContainerLow,
-                cursor: leftOpen ? undefined : "pointer",
+                cursor: leftOpen() ? undefined : "pointer",
               })}
             >
               {!leftOpen() && railHover ? (
@@ -2516,7 +2516,7 @@ export default function Page() {
               ) : (
                 <div
                   onClick={() => !leftOpen() && setLeftOpen(true)}
-                  style={s({ width: 40, height: 40, display: "grid", placeItems: "center", cursor: leftOpen ? "default" : "pointer" })}
+                  style={s({ width: 40, height: 40, display: "grid", placeItems: "center", cursor: leftOpen() ? "default" : "pointer" })}
                 >
                   <Logo size={32} color={p().primary} glyph={p().onPrimary} />
                 </div>
@@ -2571,7 +2571,7 @@ export default function Page() {
               <div style={s({ flex: 1, minHeight: 0 })}>
                 {leftTab() === "parts" ? (
                   <PartsPalette
-                    palette={p}
+                    palette={p()}
                     favorites={favorites()}
                     onToggleFavorite={(k) =>
                       setFavorites((f) =>
@@ -2579,7 +2579,7 @@ export default function Page() {
                       )
                     }
                     onPartPointerDown={onPartPointerDown}
-                    overBin={(!!drag()?.active && drag().overBin) || (gesture?.kind === "group" && gesture().overBin)}
+                    overBin={(!!drag()?.active && drag().overBin) || (gesture()?.kind === "group" && gesture().overBin)}
                   />
                 ) : leftTab() === "color" ? (
                   <ColorPanel
@@ -2651,7 +2651,7 @@ export default function Page() {
             flex: 1,
             position: "relative",
             minWidth: 0,
-            padding: isMobile ? 6 : 8,
+            padding: isMobile() ? 6 : 8,
           })}
         >
           <div
@@ -2660,7 +2660,7 @@ export default function Page() {
             onPointerDownCapture={onTouchCapture}
             style={s({
               position: "absolute",
-              inset: isMobile ? 6 : 8,
+              inset: isMobile() ? 6 : 8,
               overflow: "hidden",
               borderRadius: 24,
               background: canvasBg,
@@ -2675,14 +2675,14 @@ export default function Page() {
                 top: 0,
                 transform: `translate(${view().x}px, ${view().y}px) scale(${view().z})`,
                 transformOrigin: "0 0",
-                transition: cameraEasing ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined,
+                transition: cameraEasing() ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined,
                 willChange: "transform",
                 fontFamily: fontFamilyOf(theme().font),
               })}
             >
               {frame() === "phone" &&
                 frames().map((f) => {
-                  const on = f.id === selectedFrameId;
+                  const on = f.id === selectedFrameId();
                   const bg = p[f.bg ?? "surface"];
                   const { w, h } = frameSizeOf(f);
                   const radius = frameRadius(f);
@@ -2690,7 +2690,7 @@ export default function Page() {
                     <div
                       key={f.id}
                       data-frame={f.id}
-                      style={s({ position: "absolute", left: f.x, top: f.y, transition: easing ? `left ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined })}
+                      style={s({ position: "absolute", left: f.x, top: f.y, transition: easing() ? `left ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined })}
                     >
                       <div
                         onPointerDown={(e) => onFramePointerDown(e, f)}
@@ -2716,7 +2716,7 @@ export default function Page() {
                         })}
                       >
                         <div onPointerDown={(e) => e.stopPropagation()}>
-                          <FrameSizePicker frame={f} onChange={(preset) => setFramePreset(f.id, preset)} palette={p} compact />
+                          <FrameSizePicker frame={f} onChange={(preset) => setFramePreset(f.id, preset)} palette={p()} compact />
                         </div>
                         {f.name || t("screen", lang)}
                       </div>
@@ -2791,7 +2791,7 @@ export default function Page() {
                 >
                   <M3Node
                     item={drag().item}
-                    palette={p}
+                    palette={p()}
                     widths={widths()}
                     dragging
                     radii={(() => {
@@ -3046,7 +3046,7 @@ export default function Page() {
             </button>
           )}
 
-          {isMobile() && selected && sheet() === null && (
+          {isMobile() && selected() && sheet() === null && (
             <MobileActionBar
               p={p()}
               onEdit={() => setSheet("edit")}
@@ -3056,11 +3056,11 @@ export default function Page() {
           )}
 
           <AnimatePresence>
-            {isMobile() && sheet() === "edit" && selected && (
+            {isMobile() && sheet() === "edit" && selected() && (
               <BottomSheet key="edit" p={p()} onClose={() => setSheet(null)}>
                 <MobileInspector
                   item={selected()}
-                  palette={p}
+                  palette={p()}
                   onChange={patchSelected}
                   onDelete={() => {
                     deleteSelected();
@@ -3073,13 +3073,13 @@ export default function Page() {
             )}
             {isMobile() && sheet() === "settings" && (
               <BottomSheet key="settings" p={p()} onClose={() => setSheet(null)}>
-                <MobileSettings palette={p} paletteKey={paletteKey()} onPalette={setPaletteKey} theme={theme()} onTheme={patchTheme} />
+                <MobileSettings palette={p()} paletteKey={paletteKey()} onPalette={setPaletteKey} theme={theme()} onTheme={patchTheme} />
               </BottomSheet>
             )}
             {isMobile() && sheet() === "lang" && (
               <BottomSheet key="lang" p={p()} onClose={() => setSheet(null)}>
                 <MobileLang
-                  palette={p}
+                  palette={p()}
                   lang={lang()}
                   onLang={(l) => {
                     setLang(l);
@@ -3216,7 +3216,7 @@ export default function Page() {
                 <PromptPanel
                   doc={doc()}
                   widths={widths()}
-                  palette={p}
+                  palette={p()}
                   onDoc={(patch) => {
                     if (patch.title() !== undefined) setTitle(patch.title);
                     if (patch.brief() !== undefined) setBrief(patch.brief);
@@ -3267,9 +3267,9 @@ export default function Page() {
           {previewId() !== null && frames().length > 0 && (
             <Preview
               key="preview"
-              doc={doc}
+              doc={doc()}
               widths={widths()}
-              palette={p}
+              palette={p()}
               startId={previewId()}
               onClose={closePreview}
             />
