@@ -18,10 +18,10 @@ changes and send code. Japanese and Chinese summaries are at the end.
 bun install
 bun run dev        # http://localhost:3000
 bun run typecheck  # tsc --noEmit
-bun run build      # static export into out/
+bun run build      # static export into dist/
 ```
 
-Bun 1.4 is what CI uses. The app is a single Next.js page with no server; everything
+Bun 1.4 is what CI uses. The app is a static SPA (Bun bundler) with no server; everything
 is stored in the browser.
 
 ## Where things live

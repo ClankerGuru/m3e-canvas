@@ -726,7 +726,6 @@ function Body({ item, p }: { item: Item; p: Palette }) {
     case "image":
       if (item.src) {
         return (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.src}
             alt=""

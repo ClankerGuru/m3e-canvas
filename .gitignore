@@ -13,9 +13,10 @@
 # testing
 /coverage
 
-# next.js
+# build
 /.next/
 /out/
+/dist/
 
 # production
 /build
@@ -39,7 +40,6 @@ bun-debug.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
 
 # promo video project (Remotion) build outputs
 /promo/node_modules
