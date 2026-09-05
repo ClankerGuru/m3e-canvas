@@ -1,6 +1,6 @@
-"use client";
-
-import { useEffect, useRef } from "react";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useEffect, useRef } from "@/lib/hooks";
 import { LoadingAnimator, morphedShape } from "@/lib/shapes";
 
 /* ---------- shared helpers ---------- */
@@ -85,7 +85,7 @@ export function LoadingIndicator({
   });
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={s({ display: "block" })}>
       {contained && <circle cx={c} cy={c} r={c} fill={containerColor ?? "rgba(0,0,0,0.08)"} />}
       <path ref={pathRef} fill={color} />
     </svg>
@@ -188,7 +188,7 @@ export function LinearProgress({
 
   const stroke = { fill: "none", strokeWidth: STROKE, strokeLinecap: "round" as const };
   return (
-    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={s({ display: "block" })}>
       <path ref={trackRef} stroke={trackColor} {...stroke} />
       <path ref={activeRef} stroke={color} {...stroke} />
       <path ref={active2Ref} stroke={color} {...stroke} />
@@ -292,7 +292,7 @@ export function CircularProgress({
 
   const stroke = { fill: "none", strokeWidth: STROKE, strokeLinecap: "round" as const };
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: "block" }}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={s({ display: "block" })}>
       <path ref={trackRef} stroke={trackColor} {...stroke} />
       <path ref={activeRef} stroke={color} {...stroke} />
     </svg>

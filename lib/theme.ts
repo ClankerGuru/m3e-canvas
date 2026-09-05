@@ -1,12 +1,11 @@
-"use client";
-
-import { createContext, useContext } from "react";
-import { DEFAULT_THEME, FONTS, FontKey, Theme } from "./tokens";
+import { createContext, useContext, type Accessor } from "solid-js";
+import { DEFAULT_THEME, FONTS } from "./tokens";
+import type { FontKey, Theme } from "./tokens";
 
 /** The document theme, read by parts that render differently under it
  *  (emphasized type, motion scheme). Shape goes through the tokens helpers. */
-export const ThemeContext = createContext<Theme>(DEFAULT_THEME);
-export const useTheme = () => useContext(ThemeContext);
+export const ThemeContext = createContext<Accessor<Theme>>(() => DEFAULT_THEME);
+export const useTheme = () => useContext(ThemeContext)!;
 
 const loaded = new Set<FontKey>();
 

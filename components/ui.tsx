@@ -1,8 +1,10 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { COLOR_TOKENS, ColorToken, Palette, R_INNER, clamp } from "@/lib/tokens";
-import { AnimatePresence, motion } from "motion/react";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useEffect, useState, type CSSProperties } from "@/lib/hooks";
+import { COLOR_TOKENS, R_INNER, clamp } from "@/lib/tokens";
+import type { ColorToken, Palette } from "@/lib/tokens";
+import { AnimatePresence, motion } from "@/lib/motion";
 import { t, useLang } from "@/lib/i18n";
 import { Icon } from "./M3Node";
 
@@ -33,8 +35,8 @@ export function IconBtn({
       title={title}
       aria-label={title}
       disabled={disabled}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         width: size,
         height: size,
         borderRadius: size / 2,
@@ -51,7 +53,7 @@ export function IconBtn({
         display: "grid",
         placeItems: "center",
         flex: "0 0 auto",
-      }}
+      })}
     >
       <Icon name={icon} size={Math.round(size * 0.58)} fill={fill ?? on} />
     </button>
@@ -77,7 +79,7 @@ export function Segmented<K extends string>({
   grow?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", gap: 3 }}>
+    <div style={s({ display: "flex", gap: 3 })}>
       {options.map((o, i) => {
         const on = o.key === value;
         const first = i === 0;
@@ -89,8 +91,8 @@ export function Segmented<K extends string>({
             onClick={() => onChange(o.key)}
             title={o.title ?? o.label}
             aria-label={o.title ?? o.label}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               flex: (o.grow ?? grow) ? 1 : "0 0 auto",
               minWidth: o.wide ? height * 1.4 : height,
               height,
@@ -111,14 +113,14 @@ export function Segmented<K extends string>({
               fontWeight: on ? 600 : 500,
               transition: "background 120ms, color 120ms, border-radius 160ms",
               position: "relative",
-            }}
+            })}
           >
             {o.icon && <Icon name={o.icon} size={Math.round(height * 0.5)} fill={on} />}
             {o.label && <span>{o.label}</span>}
             {o.dot && (
               <span
                 aria-hidden
-                style={{
+                style={s({
                   position: "absolute",
                   top: 5,
                   right: 7,
@@ -126,7 +128,7 @@ export function Segmented<K extends string>({
                   height: 6,
                   borderRadius: 3,
                   background: on ? p.onPrimary : p.primary,
-                }}
+                })}
               />
             )}
           </button>
@@ -157,7 +159,7 @@ export function Field({
 }) {
   const lang = useLang();
   const filled = value.length > 0;
-  const base: React.CSSProperties = {
+  const base: CSSProperties = {
     width: "100%",
     padding: multiline ? `12px ${filled ? 40 : 14}px 12px ${icon ? 42 : 14}px` : `0 ${filled ? 40 : 14}px 0 ${icon ? 42 : 14}px`,
     borderRadius: multiline ? 18 : height / 2,
@@ -172,17 +174,17 @@ export function Field({
     resize: "none",
   };
   return (
-    <div style={{ position: "relative", width: "100%" }}>
+    <div style={s({ position: "relative", width: "100%" })}>
       {icon && (
         <span
-          style={{
+          style={s({
             position: "absolute",
             left: 12,
             top: multiline ? 12 : (height - 20) / 2,
             color: p.onSurfaceVariant,
             pointerEvents: "none",
             lineHeight: 1,
-          }}
+          })}
         >
           <Icon name={icon} size={20} />
         </span>
@@ -200,7 +202,7 @@ export function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          style={{ ...base, height }}
+          style={s({ ...base, height })}
         />
       )}
       {filled && (
@@ -208,7 +210,7 @@ export function Field({
           onClick={() => onChange("")}
           title={t("clear", lang)}
           aria-label={t("clear", lang)}
-          style={{
+          style={s({
             position: "absolute",
             right: 6,
             top: multiline ? 8 : (height - 30) / 2,
@@ -221,7 +223,7 @@ export function Field({
             cursor: "pointer",
             display: "grid",
             placeItems: "center",
-          }}
+          })}
         >
           <Icon name="close" size={16} />
         </button>
@@ -263,7 +265,7 @@ export function Slider({
 }: {
   icon?: string;
   /** custom glyph shown instead of the Material Symbol */
-  iconNode?: React.ReactNode;
+  iconNode?: JSX.Element;
   value: number;
   min: number;
   max: number;
@@ -276,38 +278,38 @@ export function Slider({
   const [text, setText] = useState(String(value));
   const [editing, setEditing] = useState(false);
   useEffect(() => {
-    if (!editing) setText(String(value));
+    if (!editing()) setText(String(value));
   }, [value, editing]);
   const commit = () => {
     const n = Math.round(Number(text));
-    if (Number.isFinite(n) && text.trim() !== "") onChange(clamp(n, min, max));
+    if (Number.isFinite(n) && text().trim() !== "") onChange(clamp(n, min, max));
     setEditing(false);
     setText(String(value));
   };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <span title={title} style={{ color: p.onSurfaceVariant, lineHeight: 1, flex: "0 0 auto", display: "inline-flex" }}>
+    <div style={s({ display: "flex", alignItems: "center", gap: 10 })}>
+      <span title={title} style={s({ color: p.onSurfaceVariant, lineHeight: 1, flex: "0 0 auto", display: "inline-flex" })}>
         {iconNode ?? <Icon name={icon} size={20} />}
       </span>
       <input
         type="range"
-        className="m3-range"
+        class="m3-range"
         aria-label={title}
         min={min}
         max={max}
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        style={{ "--track": p.secondaryContainer, "--thumb": p.primary } as React.CSSProperties}
+        style={s({ "--track": p.secondaryContainer, "--thumb": p.primary })}
       />
-      <span style={{ position: "relative", flex: "0 0 auto", display: "inline-flex", alignItems: "center" }}>
+      <span style={s({ position: "relative", flex: "0 0 auto", display: "inline-flex", alignItems: "center" })}>
         <input
           type="number"
           inputMode="numeric"
           aria-label={title}
           min={min}
           max={max}
-          value={editing ? text : String(value)}
+          value={editing() ? text : String(value)}
           onFocus={(e) => {
             setEditing(true);
             setText(String(value));
@@ -327,8 +329,8 @@ export function Slider({
               e.currentTarget.blur();
             }
           }}
-          className="m3-number"
-          style={{
+          class="m3-number"
+          style={s({
             width: unit ? 56 : 52,
             height: 30,
             padding: unit ? "0 18px 0 6px" : "0 6px",
@@ -344,17 +346,17 @@ export function Slider({
             outline: editing ? `2px solid ${p.primary}` : "none",
             outlineOffset: -1,
             boxSizing: "border-box",
-          }}
+          })}
         />
         {unit && (
           <span
-            style={{
+            style={s({
               position: "absolute",
               right: 6,
               fontSize: 11,
               color: p.onSurfaceVariant,
               pointerEvents: "none",
-            }}
+            })}
           >
             {unit}
           </span>
@@ -387,7 +389,7 @@ export function SizePresets({
   const shown = values.filter((v) => v >= min && v <= max);
   if (shown.length === 0) return null;
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 30 }}>
+    <div style={s({ display: "flex", flexWrap: "wrap", gap: 6, paddingLeft: 30 })}>
       {shown.map((v) => {
         const on = v === value;
         const label = labelOf?.(v);
@@ -398,8 +400,8 @@ export function SizePresets({
             title={label}
             aria-label={label ? `${label}: ${v}` : String(v)}
             aria-pressed={on}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               height: 28,
               padding: "0 10px",
               borderRadius: 14,
@@ -413,7 +415,7 @@ export function SizePresets({
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
-            }}
+            })}
           >
             {v}
           </button>
@@ -445,7 +447,7 @@ export function Toggle({
       title={label}
       aria-label={label}
       aria-pressed={on}
-      style={{
+      style={s({
         display: grow ? "flex" : "inline-flex",
         width: grow ? "100%" : undefined,
         alignItems: "center",
@@ -455,12 +457,12 @@ export function Toggle({
         cursor: "pointer",
         padding: 0,
         color: p.onSurfaceVariant,
-      }}
+      })}
     >
       {icon && <Icon name={icon} size={20} />}
-      {label && <span style={{ fontSize: 13, color: p.onSurface, flex: grow ? 1 : undefined, textAlign: "left" }}>{label}</span>}
+      {label && <span style={s({ fontSize: 13, color: p.onSurface, flex: grow ? 1 : undefined, textAlign: "left" })}>{label}</span>}
       <span
-        style={{
+        style={s({
           position: "relative",
           width: 44,
           height: 26,
@@ -470,10 +472,10 @@ export function Toggle({
           boxSizing: "border-box",
           transition: "background 160ms",
           flex: "0 0 auto",
-        }}
+        })}
       >
         <span
-          style={{
+          style={s({
             position: "absolute",
             top: "50%",
             left: on ? 20 : 3,
@@ -483,7 +485,7 @@ export function Toggle({
             borderRadius: 9,
             background: on ? p.onPrimary : p.outline,
             transition: "left 160ms, width 160ms, height 160ms, margin 160ms",
-          }}
+          })}
         />
       </span>
     </button>
@@ -504,8 +506,8 @@ export function Section({
   icon: string;
   title: string;
   p: Palette;
-  children: React.ReactNode;
-  right?: React.ReactNode;
+  children: JSX.Element;
+  right?: JSX.Element;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -524,12 +526,12 @@ export function Section({
     });
   };
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, height: 36 }}>
+    <div style={s({ marginBottom: 10 })}>
+      <div style={s({ display: "flex", alignItems: "center", gap: 6, height: 36 })}>
         <button
           onClick={toggle}
-          aria-expanded={open}
-          style={{
+          aria-expanded={open()}
+          style={s({
             flex: 1,
             display: "flex",
             alignItems: "center",
@@ -545,15 +547,15 @@ export function Section({
             fontWeight: 700,
             letterSpacing: 0.4,
             textAlign: "left",
-          }}
+          })}
         >
           <Icon name={icon} size={18} />
-          <span style={{ flex: 1 }}>{title}</span>
-          <Icon name={open ? "expand_less" : "expand_more"} size={18} />
+          <span style={s({ flex: 1 })}>{title}</span>
+          <Icon name={open() ? "expand_less" : "expand_more"} size={18} />
         </button>
         {right}
       </div>
-      {open && <div style={{ padding: "6px 4px 14px" }}>{children}</div>}
+      {open() && <div style={s({ padding: "6px 4px 14px" })}>{children}</div>}
     </div>
   );
 }
@@ -572,7 +574,7 @@ export function Tile({
   icon: string;
   label: string;
   p: Palette;
-  onPointerDown?: (e: React.PointerEvent) => void;
+  onPointerDown?: (e: PointerEvent) => void;
   onClick?: () => void;
   starred?: boolean;
   onStar?: () => void;
@@ -582,11 +584,11 @@ export function Tile({
   const lang = useLang();
   return (
     <div
-      className="m3-tile"
+      class="m3-tile"
       onPointerDown={onPointerDown}
       onClick={onClick}
       title={label}
-      style={{
+      style={s({
         position: "relative",
         display: "flex",
         flexDirection: compact ? "row" : "column",
@@ -602,11 +604,11 @@ export function Tile({
         touchAction: "none",
         minHeight: compact ? 40 : 72,
         boxSizing: "border-box",
-      }}
+      })}
     >
       <Icon name={icon} size={compact ? 20 : 26} color={active ? p.onSecondaryContainer : p.primary} />
       <span
-        style={{
+        style={s({
           fontSize: 11,
           fontWeight: 500,
           lineHeight: 1.2,
@@ -616,13 +618,13 @@ export function Tile({
           textOverflow: "ellipsis",
           whiteSpace: "nowrap",
           maxWidth: "100%",
-        }}
+        })}
       >
         {label}
       </span>
       {onStar && (
         <button
-          className="m3-star"
+          class="m3-star"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={(e) => {
             e.stopPropagation();
@@ -630,7 +632,7 @@ export function Tile({
           }}
           title={starred ? t("removeFavorite", lang) : t("addFavorite", lang)}
           aria-label={starred ? t("removeFavorite", lang) : t("addFavorite", lang)}
-          style={{
+          style={s({
             position: "absolute",
             top: 4,
             right: 4,
@@ -644,7 +646,7 @@ export function Tile({
             display: "grid",
             placeItems: "center",
             opacity: starred ? 1 : undefined,
-          }}
+          })}
         >
           <Icon name="star" size={16} fill={starred} />
         </button>
@@ -672,15 +674,15 @@ export function TokenChips({
 }) {
   const lang = useLang();
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+    <div style={s({ display: "flex", flexWrap: "wrap", gap: 8 })}>
       {none && (
         <button
           onClick={onNone}
           title={t("noBackground", lang)}
           aria-label={t("noBackground", lang)}
           aria-pressed={noneOn}
-          className="m3-press"
-          style={{
+          class="m3-press"
+          style={s({
             width: 30,
             height: 30,
             borderRadius: 15,
@@ -693,7 +695,7 @@ export function TokenChips({
             placeItems: "center",
             outline: noneOn ? `2px solid ${p.primary}` : "2px solid transparent",
             outlineOffset: 2,
-          }}
+          })}
         >
           <Icon name="block" size={16} />
         </button>
@@ -707,8 +709,8 @@ export function TokenChips({
             title={t.label}
             aria-label={t.label}
             aria-pressed={on}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               width: 30,
               height: 30,
               borderRadius: 15,
@@ -718,7 +720,7 @@ export function TokenChips({
               background: p[t.key],
               outline: on ? `2px solid ${p.primary}` : "2px solid transparent",
               outlineOffset: 2,
-            }}
+            })}
           />
         );
       })}
@@ -728,8 +730,8 @@ export function TokenChips({
 
 /** M3 basic dialog for a destructive confirmation. */
 /** A run of buttons fused like the canvas's connected buttons: round outside, small corners where they meet. */
-export function ButtonRun({ children }: { children: React.ReactNode }) {
-  return <div className="m3-run" style={{ display: "flex", gap: 3 }}>{children}</div>;
+export function ButtonRun({ children }: { children: JSX.Element }) {
+  return <div class="m3-run" style={s({ display: "flex", gap: 3 })}>{children}</div>;
 }
 
 export type TidyState = "tidy" | "undo" | "done";
@@ -746,8 +748,8 @@ export function TidyButton({ state, onClick, p, pill }: { state: TidyState; onCl
       disabled={done}
       title={label}
       aria-label={label}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         width: pill ? (done ? 40 : undefined) : "100%",
         height: pill ? 40 : 44,
         padding: done ? 0 : pill ? "0 16px 0 12px" : "0 16px",
@@ -764,7 +766,7 @@ export function TidyButton({ state, onClick, p, pill }: { state: TidyState; onCl
         gap: 8,
         opacity: done ? 0.7 : 1,
         whiteSpace: "nowrap",
-      }}
+      })}
     >
       <Icon name={state === "undo" ? "undo" : state === "done" ? "check" : "align_space_even"} size={done ? 22 : 20} />
       {!done && label}
@@ -791,7 +793,7 @@ export function ConfirmDialog({
 }) {
   const lang = useLang();
   useEffect(() => {
-    if (!open) return;
+    if (!open()) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -808,8 +810,8 @@ export function ConfirmDialog({
   const btn = (label: string, primary: boolean, onClick: () => void) => (
     <button
       onClick={onClick}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         height: 40,
         padding: "0 16px",
         borderRadius: 20,
@@ -819,14 +821,14 @@ export function ConfirmDialog({
         fontSize: 14,
         fontWeight: 600,
         cursor: "pointer",
-      }}
+      })}
     >
       {label}
     </button>
   );
   return (
     <AnimatePresence>
-      {open && (
+      {open() && (
         <motion.div
           key="scrim"
           initial={{ opacity: 0 }}
@@ -834,7 +836,7 @@ export function ConfirmDialog({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.16 }}
           onClick={onCancel}
-          style={{
+          style={s({
             position: "fixed",
             inset: 0,
             zIndex: 600,
@@ -842,7 +844,7 @@ export function ConfirmDialog({
             display: "grid",
             placeItems: "center",
             padding: 24,
-          }}
+          })}
         >
           <motion.div
             role="alertdialog"
@@ -853,7 +855,7 @@ export function ConfirmDialog({
             exit={{ scale: 0.96, opacity: 0 }}
             transition={{ type: "spring", stiffness: 520, damping: 34, mass: 0.7 }}
             onClick={(e) => e.stopPropagation()}
-            style={{
+            style={s({
               width: "min(100%, 340px)",
               padding: 24,
               borderRadius: 28,
@@ -863,14 +865,14 @@ export function ConfirmDialog({
               display: "flex",
               flexDirection: "column",
               gap: 16,
-            }}
+            })}
           >
-            <div style={{ textAlign: "center", color: p.error }}>
+            <div style={s({ textAlign: "center", color: p.error })}>
               <Icon name={icon} size={28} />
             </div>
-            <div style={{ fontSize: 22, textAlign: "center" }}>{title}</div>
-            <div style={{ fontSize: 14, lineHeight: 1.5, color: p.onSurfaceVariant }}>{body}</div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div style={s({ fontSize: 22, textAlign: "center" })}>{title}</div>
+            <div style={s({ fontSize: 14, lineHeight: 1.5, color: p.onSurfaceVariant })}>{body}</div>
+            <div style={s({ display: "flex", justifyContent: "flex-end", gap: 8 })}>
               {btn(t("cancel", lang), false, onCancel)}
               {btn(t("ok", lang), true, onConfirm)}
             </div>

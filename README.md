@@ -14,7 +14,7 @@
   <a href="https://github.com/lnkiai/m3e-canvas/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/lnkiai/m3e-canvas?style=flat&logo=github&color=6750A4" /></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue.svg" /></a>
   <img alt="Bun" src="https://img.shields.io/badge/Bun-1.4-f9f1e1?logo=bun&logoColor=000" />
-  <img alt="React" src="https://img.shields.io/badge/React-19-20232a?logo=react&logoColor=61DAFB" />
+  <img alt="Solid" src="https://img.shields.io/badge/Solid-1.9-2c4f7c?logo=solid&logoColor=white" />
   <img alt="Material 3 Expressive" src="https://img.shields.io/badge/Material%203-Expressive-EADDFF?logo=materialdesign&logoColor=6750A4" />
   <img alt="No backend" src="https://img.shields.io/badge/backend-none%20(localStorage)-2E6A45" />
 </p>
@@ -77,7 +77,7 @@ bun run dev        # http://localhost:3000
 bun run build      # static export to ./dist
 ```
 
-The app is a static Bun bundle. To host it under a sub-path (for example a GitHub Pages project site), set `PUBLIC_BASE_PATH=/your-repo` at build time. `.github/workflows/deploy.yml` does this automatically and publishes `dist/` to GitHub Pages on every push to `main`.
+The app is a Bun + Solid static bundle. To host it under a sub-path (for example a GitHub Pages project site), set `PUBLIC_BASE_PATH=/your-repo` at build time. `.github/workflows/deploy.yml` does this automatically and publishes `dist/` to GitHub Pages on every push to `main`.
 
 ## Contributing
 

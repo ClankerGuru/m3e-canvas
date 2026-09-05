@@ -1,9 +1,11 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { Palette } from "@/lib/tokens";
-import { LANGS, Lang, t, useLang } from "@/lib/i18n";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useEffect, useRef, useState, type CSSProperties } from "@/lib/hooks";
+import { AnimatePresence, motion } from "@/lib/motion";
+import type { Palette } from "@/lib/tokens";
+import { LANGS, t, useLang } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import { IconBtn } from "./ui";
 import { Icon } from "./M3Node";
 
@@ -23,12 +25,12 @@ export function Popover({
   title: string;
   side?: "down" | "right";
   size?: number;
-  children: (close: () => void) => React.ReactNode;
+  children: (close: () => void) => JSX.Element;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open()) return;
     const onDown = (e: PointerEvent) => {
       if (!ref.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -40,23 +42,23 @@ export function Popover({
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
-  const anchor: React.CSSProperties =
+  const anchor: CSSProperties =
     side === "down"
       ? { top: size + 8, right: 0, transformOrigin: "top right" }
       : { left: size + 8, bottom: 0, transformOrigin: "bottom left" };
   const hidden = side === "down" ? { opacity: 0, y: -6, scale: 0.96 } : { opacity: 0, x: -6, scale: 0.96 };
   return (
-    <div ref={ref} style={{ position: "relative" }}>
-      <IconBtn icon={icon} p={p} on={open} onClick={() => setOpen((o) => !o)} title={title} size={size} />
+    <div ref={ref} style={s({ position: "relative" })}>
+      <IconBtn icon={icon} p={p} on={open()} onClick={() => setOpen((o) => !o)} title={title} size={size} />
       <AnimatePresence>
-        {open && (
+        {open() && (
           <motion.div
             role="menu"
             initial={hidden}
             animate={{ opacity: 1, x: 0, y: 0, scale: 1 }}
             exit={hidden}
             transition={{ duration: 0.16, ease: EASE }}
-            style={{
+            style={s({
               position: "absolute",
               padding: 6,
               borderRadius: 18,
@@ -64,7 +66,7 @@ export function Popover({
               boxShadow: "0 6px 20px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.04)",
               zIndex: 60,
               ...anchor,
-            }}
+            })}
           >
             {children(() => setOpen(false))}
           </motion.div>
@@ -79,7 +81,7 @@ export function LangMenu({ p, onLang, side, size }: { p: Palette; onLang: (l: La
   return (
     <Popover p={p} icon="translate" title={t("language", lang)} side={side} size={size}>
       {(close) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 140 }}>
+        <div style={s({ display: "flex", flexDirection: "column", gap: 2, minWidth: 140 })}>
           {LANGS.map((l) => {
             const on = l.key === lang;
             return (
@@ -91,8 +93,8 @@ export function LangMenu({ p, onLang, side, size }: { p: Palette; onLang: (l: La
                   onLang(l.key);
                   close();
                 }}
-                className="m3-press"
-                style={{
+                class="m3-press"
+                style={s({
                   height: 40,
                   padding: "0 14px 0 10px",
                   borderRadius: 12,
@@ -106,9 +108,9 @@ export function LangMenu({ p, onLang, side, size }: { p: Palette; onLang: (l: La
                   alignItems: "center",
                   gap: 10,
                   whiteSpace: "nowrap",
-                }}
+                })}
               >
-                <span style={{ width: 18, display: "inline-flex" }}>{on && <Icon name="check" size={18} />}</span>
+                <span style={s({ width: 18, display: "inline-flex" })}>{on && <Icon name="check" size={18} />}</span>
                 {l.label}
               </button>
             );

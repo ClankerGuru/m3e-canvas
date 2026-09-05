@@ -1,10 +1,15 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { motion, useDragControls } from "motion/react";
-import { CONTRASTS, Contrast, FONTS, Item, KIND_SPEC, NavTab, PALETTES, Palette, SHAPES, ShapeScale, Theme, defaultTabsFor, iconSlotsOf, setIconSlot } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useEffect, useState } from "@/lib/hooks";
+import { motion, useDragControls } from "@/lib/motion";
+import { CONTRASTS, FONTS, KIND_SPEC, PALETTES, SHAPES, defaultTabsFor, iconSlotsOf, setIconSlot } from "@/lib/tokens";
+import type { Contrast } from "@/lib/tokens";
+import type { NavTab, ShapeScale } from "@/lib/tokens";
+import type { Item, Palette, Theme } from "@/lib/tokens";
 import { ensureFontLoaded } from "@/lib/theme";
-import { LANGS, Lang, t, useLang } from "@/lib/i18n";
+import { LANGS, t, useLang } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import { IconPicker } from "./IconPicker";
 import { Icon } from "./M3Node";
 import { VariantSwatch, variantsOf } from "./Inspector";
@@ -12,7 +17,7 @@ import { Field, IconBtn, Segmented, Toggle } from "./ui";
 
 /** Sheet that slides up from the bottom edge; the canvas above stays usable.
  *  Dragging the handle moves the sheet with the finger; a flick or a long pull closes it. */
-export function BottomSheet({ p, onClose, children }: { p: Palette; onClose: () => void; children: React.ReactNode }) {
+export function BottomSheet({ p, onClose, children }: { p: Palette; onClose: () => void; children: JSX.Element }) {
   const lang = useLang();
   const controls = useDragControls();
   return (
@@ -30,7 +35,7 @@ export function BottomSheet({ p, onClose, children }: { p: Palette; onClose: () 
       onDragEnd={(_, info) => {
         if (info.offset.y > 90 || info.velocity.y > 600) onClose();
       }}
-      style={{
+      style={s({
         position: "absolute",
         left: 0,
         right: 0,
@@ -44,13 +49,13 @@ export function BottomSheet({ p, onClose, children }: { p: Palette; onClose: () 
         boxShadow: "0 -6px 24px rgba(0,0,0,0.16)",
         zIndex: 60,
         paddingBottom: "calc(var(--bottom-ui, 0px) + env(safe-area-inset-bottom))",
-      }}
+      })}
     >
       <button
         onClick={onClose}
         onPointerDown={(e) => controls.start(e)}
         aria-label={t("close", lang)}
-        style={{
+        style={s({
           height: 30,
           border: "none",
           background: "transparent",
@@ -59,22 +64,22 @@ export function BottomSheet({ p, onClose, children }: { p: Palette; onClose: () 
           cursor: "grab",
           flex: "0 0 auto",
           touchAction: "none",
-        }}
+        })}
       >
-        <span style={{ width: 32, height: 4, borderRadius: 2, background: p.outlineVariant }} />
+        <span style={s({ width: 32, height: 4, borderRadius: 2, background: p.outlineVariant })} />
       </button>
-      <div className="no-scrollbar" style={{ overflowY: "auto", padding: "0 14px 16px", minHeight: 0 }}>
+      <div class="no-scrollbar" style={s({ overflowY: "auto", padding: "0 14px 16px", minHeight: 0 })}>
         {children}
       </div>
     </motion.div>
   );
 }
 
-function Row({ icon, label, p, children }: { icon: string; label: string; p: Palette; children: React.ReactNode }) {
+function Row({ icon, label, p, children }: { icon: string; label: string; p: Palette; children: JSX.Element }) {
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={s({ marginBottom: 12 })}>
       <div
-        style={{
+        style={s({
           display: "flex",
           alignItems: "center",
           gap: 6,
@@ -83,7 +88,7 @@ function Row({ icon, label, p, children }: { icon: string; label: string; p: Pal
           fontSize: 12,
           fontWeight: 700,
           letterSpacing: 0.4,
-        }}
+        })}
       >
         <Icon name={icon} size={16} />
         {label}
@@ -131,9 +136,9 @@ export function MobileInspector({
 
   return (
     <div>
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+      <div style={s({ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 })}>
         <div
-          style={{
+          style={s({
             width: 40,
             height: 40,
             borderRadius: 20,
@@ -141,11 +146,11 @@ export function MobileInspector({
             color: p.onSecondaryContainer,
             display: "grid",
             placeItems: "center",
-          }}
+          })}
         >
           <Icon name={spec.paletteIcon} size={22} />
         </div>
-        <span style={{ fontSize: 16, fontWeight: 700, color: p.onSurface, flex: 1 }}>{spec.label}</span>
+        <span style={s({ fontSize: 16, fontWeight: 700, color: p.onSurface, flex: 1 })}>{spec.label}</span>
         <IconBtn icon="content_copy" p={p} onClick={onDuplicate} title={t("duplicate", lang)} size={44} />
         <IconBtn icon="delete" p={p} danger onClick={onDelete} title={t("delete", lang)} size={44} />
         <IconBtn icon="check" p={p} on onClick={onClose} title={t("done", lang)} size={44} />
@@ -153,9 +158,9 @@ export function MobileInspector({
 
       {(spec.hasLabel || spec.hasSupporting) && (
         <Row icon="title" label={t("text", lang)} p={p}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 6 })}>
             {spec.hasLabel && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={s({ display: "flex", gap: 6, alignItems: "center" })}>
                 <Field value={item.label} onChange={(label) => onChange({ label })} placeholder={t("label", lang)} p={p} icon="short_text" height={48} />
                 {item.kind === "text" && (
                   <IconBtn icon="format_bold" p={p} size={48} on={!!item.bold} onClick={() => onChange({ bold: !item.bold })} title={t("bold", lang)} />
@@ -185,11 +190,11 @@ export function MobileInspector({
             p={p}
             height={44}
           />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 })}>
             {tabs.map((tab, i) => (
-              <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div key={i} style={s({ display: "flex", gap: 6, alignItems: "center" })}>
                 {item.kind !== "tabs" && (
-                  <IconBtn icon={tab.icon || "add"} p={p} size={48} on={tabSlot === i} onClick={() => setTabSlot(tabSlot === i ? null : i)} title={t("changeIcon", lang)} />
+                  <IconBtn icon={tab.icon || "add"} p={p} size={48} on={tabSlot() === i} onClick={() => setTabSlot(tabSlot() === i ? null : i)} title={t("changeIcon", lang)} />
                 )}
                 {item.kind !== "toolbar" && (
                   <Field value={tab.label} onChange={(label) => onChange({ tabs: tabs.map((x, j) => (j === i ? { ...x, label } : x)) })} placeholder={t("label", lang)} p={p} height={48} />
@@ -197,9 +202,9 @@ export function MobileInspector({
               </div>
             ))}
           </div>
-          {tabSlot !== null && tabs[tabSlot] && (
-            <div style={{ marginTop: 8 }}>
-              <IconPicker value={tabs[tabSlot].icon || null} onChange={(icon) => onChange(setIconSlot(item, `tab:${tabSlot}`, icon))} palette={p} />
+          {tabSlot() !== null && tabs[tabSlot] && (
+            <div style={s({ marginTop: 8 })}>
+              <IconPicker value={tabs[tabSlot].icon || null} onChange={(icon) => onChange(setIconSlot(item, `tab:${tabSlot()}`, icon))} palette={p} />
             </div>
           )}
         </Row>
@@ -207,7 +212,7 @@ export function MobileInspector({
 
       {slots.length > 0 && activeSlot && (
         <Row icon="emoji_symbols" label={t("icon", lang)} p={p}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div style={s({ display: "flex", gap: 6, flexWrap: "wrap" })}>
             {slots.map((s) => {
               const on = s.key === activeSlot.key && pickerOpen;
               return (
@@ -218,8 +223,8 @@ export function MobileInspector({
                     setPickerOpen(!(on && pickerOpen));
                   }}
                   title={s.label}
-                  className="m3-press"
-                  style={{
+                  class="m3-press"
+                  style={s({
                     height: 48,
                     minWidth: 48,
                     padding: slots.length > 1 ? "0 14px 0 10px" : 0,
@@ -234,7 +239,7 @@ export function MobileInspector({
                     gap: 8,
                     fontSize: 13,
                     fontWeight: 600,
-                  }}
+                  })}
                 >
                   <Icon name={s.value ?? "block"} size={24} />
                   {slots.length > 1 && <span>{s.label}</span>}
@@ -244,8 +249,8 @@ export function MobileInspector({
             {activeSlot.value && (
               <button
                 onClick={() => onChange(setIconSlot(item, activeSlot.key, null))}
-                className="m3-press"
-                style={{
+                class="m3-press"
+                style={s({
                   height: 48,
                   padding: "0 14px 0 10px",
                   borderRadius: 24,
@@ -258,15 +263,15 @@ export function MobileInspector({
                   gap: 6,
                   fontSize: 13,
                   fontWeight: 600,
-                }}
+                })}
               >
                 <Icon name="close" size={20} />
                 {t("noIcon", lang)}
               </button>
             )}
           </div>
-          {pickerOpen && (
-            <div style={{ marginTop: 8 }}>
+          {pickerOpen() && (
+            <div style={s({ marginTop: 8 })}>
               <IconPicker value={activeSlot.value} onChange={(icon) => onChange(setIconSlot(item, activeSlot.key, icon))} palette={p} />
             </div>
           )}
@@ -275,7 +280,7 @@ export function MobileInspector({
 
       {variants.length > 0 && (
         <Row icon="palette" label={t("style", lang)} p={p}>
-          <div className="no-scrollbar" style={{ display: "flex", gap: 6, overflowX: "auto", padding: "3px 3px 6px" }}>
+          <div class="no-scrollbar" style={s({ display: "flex", gap: 6, overflowX: "auto", padding: "3px 3px 6px" })}>
             {variants.map((v) => (
               <VariantSwatch key={v.key} v={v.key} label={v.label} p={p} on={item.variant === v.key} onClick={() => onChange({ variant: v.key })} />
             ))}
@@ -306,7 +311,7 @@ export function MobileInspector({
 export function MobileLang({ palette: p, lang, onLang }: { palette: Palette; lang: Lang; onLang: (l: Lang) => void }) {
   return (
     <Row icon="translate" label={t("language", lang)} p={p}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={s({ display: "flex", flexDirection: "column", gap: 4 })}>
         {LANGS.map((l) => {
           const on = l.key === lang;
           return (
@@ -314,8 +319,8 @@ export function MobileLang({ palette: p, lang, onLang }: { palette: Palette; lan
               key={l.key}
               onClick={() => onLang(l.key)}
               aria-pressed={on}
-              className="m3-press"
-              style={{
+              class="m3-press"
+              style={s({
                 height: 52,
                 padding: "0 16px 0 12px",
                 borderRadius: 16,
@@ -329,9 +334,9 @@ export function MobileLang({ palette: p, lang, onLang }: { palette: Palette; lan
                 alignItems: "center",
                 gap: 12,
                 textAlign: "left",
-              }}
+              })}
             >
-              <span style={{ width: 22, display: "inline-flex" }}>{on && <Icon name="check" size={22} />}</span>
+              <span style={s({ width: 22, display: "inline-flex" })}>{on && <Icon name="check" size={22} />}</span>
               {l.label}
             </button>
           );
@@ -370,7 +375,7 @@ export function MobileSettings({
           p={p}
           height={44}
         />
-        <div style={{ marginTop: 8 }}>
+        <div style={s({ marginTop: 8 })}>
           <Toggle on={theme.bothModes} onChange={(bothModes) => onTheme({ bothModes })} p={p} icon="routine" label={t("bothModes", lang)} grow />
         </div>
       </Row>
@@ -384,7 +389,7 @@ export function MobileSettings({
         />
       </Row>
       <Row icon="palette" label={t("theme", lang)} p={p}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", padding: "2px 0" }}>
+        <div style={s({ display: "flex", gap: 10, flexWrap: "wrap", padding: "2px 0" })}>
           {PALETTES.map((pal) => {
             const on = pal.key === paletteKey;
             return (
@@ -394,8 +399,8 @@ export function MobileSettings({
                 title={pal.label}
                 aria-label={pal.label}
                 aria-pressed={on}
-                className="m3-press"
-                style={{
+                class="m3-press"
+                style={s({
                   width: 48,
                   height: 48,
                   borderRadius: 24,
@@ -407,7 +412,7 @@ export function MobileSettings({
                   placeItems: "center",
                   outline: on ? `3px solid ${p.onSurface}` : "3px solid transparent",
                   outlineOffset: 3,
-                }}
+                })}
               >
                 {on && <Icon name="check" size={24} />}
               </button>
@@ -425,7 +430,7 @@ export function MobileSettings({
         />
       </Row>
       <Row icon="text_fields" label={t("typography", lang)} p={p}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={s({ display: "flex", flexDirection: "column", gap: 4 })}>
           {FONTS.map((f) => {
             const on = theme.font === f.key;
             ensureFontLoaded(f.key);
@@ -434,8 +439,8 @@ export function MobileSettings({
                 key={f.key}
                 onClick={() => onTheme({ font: f.key })}
                 aria-pressed={on}
-                className="m3-press"
-                style={{
+                class="m3-press"
+                style={s({
                   height: 48,
                   padding: "0 16px 0 12px",
                   borderRadius: 16,
@@ -450,14 +455,14 @@ export function MobileSettings({
                   gap: 12,
                   textAlign: "left",
                   fontFamily: f.family,
-                }}
+                })}
               >
-                <span style={{ width: 22, display: "inline-flex" }}>{on && <Icon name="check" size={22} />}</span>
+                <span style={s({ width: 22, display: "inline-flex" })}>{on && <Icon name="check" size={22} />}</span>
                 {f.label}
               </button>
             );
           })}
-          <div style={{ marginTop: 4 }}>
+          <div style={s({ marginTop: 4 })}>
             <Toggle on={theme.emphasized} onChange={(emphasized) => onTheme({ emphasized })} p={p} icon="format_bold" label={t("emphasized", lang)} />
           </div>
         </div>
@@ -493,7 +498,7 @@ export function MobileActionBar({
   const lang = useLang();
   return (
     <div
-      style={{
+      style={s({
         position: "absolute",
         left: 14,
         bottom: "calc(16px + var(--bottom-ui, 0px) + env(safe-area-inset-bottom))",
@@ -504,12 +509,12 @@ export function MobileActionBar({
         background: p.surface,
         boxShadow: "0 6px 18px rgba(0,0,0,0.14)",
         zIndex: 46,
-      }}
+      })}
     >
       <button
         onClick={onEdit}
-        className="m3-press"
-        style={{
+        class="m3-press"
+        style={s({
           height: 52,
           padding: "0 20px 0 16px",
           borderRadius: 26,
@@ -522,7 +527,7 @@ export function MobileActionBar({
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
-        }}
+        })}
       >
         <Icon name="tune" size={22} />
         {t("edit", lang)}

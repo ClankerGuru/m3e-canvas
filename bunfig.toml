@@ -1,3 +1,7 @@
+jsx = "solid"
+jsxFactory = "solid-js"
+preload = ["./bunPreload.ts"]
+
 [serve.static]
-plugins = ["bun-plugin-tailwind"]
+plugins = ["bun-plugin-tailwind", "./solid-plugin.ts"]
 env = "PUBLIC_*"

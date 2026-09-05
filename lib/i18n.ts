@@ -1,6 +1,4 @@
-"use client";
-
-import { createContext, useContext } from "react";
+import { createContext, useContext, type Accessor } from "solid-js";
 
 export type Lang = "ja" | "en" | "zh";
 export const LANGS: { key: Lang; label: string }[] = [
@@ -18,8 +16,8 @@ export const setGlobalLang = (l: Lang) => {
   current = l;
 };
 
-export const LangContext = createContext<Lang>("ja");
-export const useLang = () => useContext(LangContext);
+export const LangContext = createContext<Accessor<Lang>>(() => "ja" as Lang);
+export const useLang = () => useContext(LangContext)!;
 
 type Str = { ja: string; en: string; zh: string };
 
@@ -280,7 +278,10 @@ const UI = {
 
 export type UIKey = keyof typeof UI;
 
-export const t = (key: UIKey, lang: Lang = current): string => UI[key][lang];
+export const t = (key: UIKey, lang: Lang | Accessor<Lang> = current): string => {
+  const l = typeof lang === "function" ? lang() : lang;
+  return UI[key][l];
+};
 
 /* ---- part defaults and nouns ---- */
 
