@@ -2,7 +2,7 @@
 import { s } from "@/lib/css";
 import type { JSX } from "solid-js";
 import { AnimatePresence, motion } from "@/lib/motion";
-import type { FrameMode, Palette } from "@/lib/tokens";
+import type { FrameMode, Palette, Place } from "@/lib/tokens";
 import { IconBtn, Segmented, TidyButton } from "./ui";
 import type { TidyState } from "./ui";
 import { Icon } from "./M3Node";
@@ -82,10 +82,17 @@ export function Toolbar({
   onLangSheet,
   tidy,
   onTidy,
+  place,
+  onPlace,
   note,
   onSaveProject,
   onOpenProject,
   onShare,
+  shareState = "idle",
+  onDraftKeep,
+  onDraftUndo,
+  onDraftSave,
+  quickUndo,
 }: {
   p: Palette;
   mode: Mode;
@@ -112,11 +119,23 @@ export function Toolbar({
   /** the tidy button for the screen being worked on; absent when no screen is in play */
   tidy?: TidyState;
   onTidy?: () => void;
+  /** where the screen's body goes; with onPlace the tidy button gains a menu */
+  place?: Place;
+  onPlace?: (place: Place) => void;
   /** a short message shown beside the tidy button for a moment */
   note?: { text: string; icon: string } | null;
   onSaveProject?: () => void;
   onOpenProject?: () => void;
+  /** opens the "ask an AI" dialog from the left end of the zoom row */
   onShare?: () => void;
+  /** busy while a model drafts; review while the draft waits to be kept or undone */
+  shareState?: "idle" | "busy" | "review";
+  onDraftKeep?: () => void;
+  onDraftUndo?: () => void;
+  /** saves the arrived design as a project file, the same as the header's save */
+  onDraftSave?: () => void;
+  /** after a kept draft: the header's undo, shown beside the opener so the previous design stays a tap away */
+  quickUndo?: boolean;
 }) {
   const lang = useLang();
   if (mobile) {
@@ -215,7 +234,7 @@ export function Toolbar({
         </div>
         {tidy && onTidy && (
           <Pill p={p}>
-            <TidyButton state={tidy} onClick={onTidy} p={p} pill />
+            <TidyButton state={tidy} onClick={onTidy} p={p} pill place={place} onPlace={onPlace} />
           </Pill>
         )}
         <Pill p={p}>
@@ -255,6 +274,45 @@ export function Toolbar({
           <IconBtn icon="fit_screen" p={p} onClick={onFit} title={t("fit", lang)} size={40} />
         </Pill>
       </div>
+      {onShare && (
+        <div style={s({ position: "absolute", left: 22, bottom: 22, zIndex: 40, pointerEvents: "none" })}>
+          <Pill p={p}>
+            {shareState === "review" && onDraftUndo && onDraftKeep ? (
+              [
+                { icon: "undo", title: t("draftUndo", lang), onClick: onDraftUndo, primary: false },
+                { icon: "check", title: t("draftKeep", lang), onClick: onDraftKeep, primary: true },
+                ...(onDraftSave ? [{ icon: "download", title: t("saveProject", lang), onClick: onDraftSave, primary: false }] : []),
+              ].map((b) => (
+                <button
+                  key={b.icon}
+                  onClick={b.onClick}
+                  title={b.title}
+                  aria-label={b.title}
+                  class="m3-press"
+                  style={s({
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    border: "none",
+                    background: b.primary ? p.primary : p.surfaceContainerHigh,
+                    color: b.primary ? p.onPrimary : p.onSurfaceVariant,
+                    cursor: "pointer",
+                    display: "grid",
+                    placeItems: "center",
+                  })}
+                >
+                  <Icon name={b.icon} size={22} />
+                </button>
+              ))
+            ) : (
+              <>
+                <ShareButton p={p} onClick={onShare} busy={shareState === "busy"} />
+                {quickUndo && canUndo && <IconBtn icon="undo" p={p} onClick={onUndo} title={t("undo", lang)} size={40} />}
+              </>
+            )}
+          </Pill>
+        </div>
+      )}
       <div
         style={s({
           position: "absolute",
@@ -266,8 +324,8 @@ export function Toolbar({
           gap: 10,
           pointerEvents: "none",
           zIndex: 40,
-          flexWrap: "wrap",
-          padding: "0 12px",
+          flexWrap: "nowrap",
+          padding: "0 72px",
         })}
       >
         <Pill p={p}>
@@ -306,7 +364,6 @@ export function Toolbar({
             size={40}
             fill
           />
-          {onShare && <ShareButton p={p} onClick={onShare} />}
         </Pill>
 
         <Pill p={p}>

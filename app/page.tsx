@@ -4,9 +4,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, cre
 import { AnimatePresence, motion, useReducedMotion, useSpring } from "@/lib/motion";
 import { toPng } from "html-to-image";
 import { buildPrompt, effectivePrompt } from "@/lib/prompt";
-import { actionsOf, BACK_TARGET, baseRadii, explodeGroup, freeRadii, BEZEL, canJoin, clamp, connectSpecOf, isPlatform, FRAME_GAP, FRAME_LABEL_H, frameOfGroup, framePresetPatch, frameRadius, frameRect, frameSizeOf, carryItemSize, defaultPlatformOf, GAP, groupBounds, KIND_ORDER, KIND_SPEC, collapseFree, layoutOf, lerp, makeItem, DEFAULT_THEME, fontFamilyOf, normalizeTheme, setGlobalShape, MEASURED, NAV_BAR_H, paletteOf, PHONE_H, PHONE_MARGIN, PHONE_W, PULL_EXP, SETTLE_MS, sizeOf, SNAP_CROSS, SNAP_MAIN, TRANSITIONS, uid, uniformRadii, FULL_WIDTH, fitHeight } from "@/lib/tokens";
+import { actionsOf, BACK_TARGET, baseRadii, explodeGroup, freeRadii, BEZEL, canJoin, clamp, connectSpecOf, isPlatform, FRAME_GAP, FRAME_LABEL_H, frameOfGroup, framePresetPatch, frameRadius, frameRect, frameSizeOf, carryItemSize, defaultPlatformOf, GAP, groupBounds, KIND_ORDER, KIND_SPEC, collapseFree, layoutOf, lerp, makeItem, DEFAULT_THEME, fontFamilyOf, uiFontFamily, normalizeTheme, setGlobalShape, MEASURED, NAV_BAR_H, paletteOf, PHONE_H, PHONE_MARGIN, PHONE_W, PULL_EXP, SETTLE_MS, sizeOf, SNAP_CROSS, SNAP_MAIN, TRANSITIONS, uid, uniformRadii, FULL_WIDTH, fitHeight } from "@/lib/tokens";
 import type { Axis, Transition } from "@/lib/tokens";
-import type { Action, Doc, Platform, Frame, FramePreset, FrameMode, Group, Item, Kind, Theme, Palette, Radii } from "@/lib/tokens";
+import type { Action, Doc, Platform, Frame, FramePreset, FrameMode, Group, Item, Kind, Theme, Palette, Place, Radii } from "@/lib/tokens";
 import { Icon, M3Node, M3Static, MeasuredContent } from "@/components/M3Node";
 import { LayersPanel } from "@/components/Layers";
 import { FrameInspector, FrameSizePicker, Inspector } from "@/components/Inspector";
@@ -20,22 +20,23 @@ import { LangMenu } from "@/components/Menus";
 import { AiPanel, aiErrorText } from "@/components/AiPanel";
 import type { AiActionKey } from "@/components/AiPanel";
 import type { TidyState } from "@/components/ui";
-import { DEFAULT_AI, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, proposeDescription, pushHistory, saveAiSettings } from "@/lib/ai";
+import { DEFAULT_AI, draftDesign, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, proposeDescription, pushHistory, saveAiSettings } from "@/lib/ai";
 import type { AiSettings } from "@/lib/ai";
 import { barSlotOf, carryFrame, pullInto, tidyFrame } from "@/lib/tidy";
-import { readProject, saveProject } from "@/lib/project";
+import { isProject, readProject, saveProject } from "@/lib/project";
 import { hasShareHash, readShareHash, clearShareHash } from "@/lib/share";
 import { ShareButton, ShareDialog } from "@/components/ShareMenu";
 import { SEED_FRAMES, hydrateDoc, mobileHomeFrame, mobileSeed, seed } from "@/lib/board";
 import { createHistory } from "@/lib/history";
 import type { Snapshot } from "@/lib/history";
-import { readStoredDoc, readStoredUi, writeStoredDoc, writeStoredUi } from "@/lib/persist";
+import { BEFORE_KEY, DOC_LOCK, readStoredDoc, readStoredUi, writeStoredDoc, writeStoredUi } from "@/lib/persist";
 import { ColorPanel } from "@/components/ColorPanel";
 import { MotionPanel, ShapePanel, TypePanel } from "@/components/ThemePanel";
 import { ThemeContext, ensureFontLoaded } from "@/lib/theme";
 import { BottomSheet, MobileActionBar, MobileInspector, MobileLang, MobileSettings } from "@/components/Mobile";
 import { ConfirmDialog, IconBtn, Segmented } from "@/components/ui";
-import { LangContext, isLang, setGlobalLang, t } from "@/lib/i18n";
+import { LoadingIndicator } from "@/components/Loading";
+import { LangContext, detectLang, isLang, setGlobalLang, t } from "@/lib/i18n";
 import type { Lang } from "@/lib/i18n";
 
 /** the dragged part's own travel: a little lag reads as weight */
@@ -53,6 +54,10 @@ const OPEN = {
   mass: 0.55,
 };
 const INSTANT = { duration: 0 };
+
+/** the screens while a model drafts: primary, tertiary and primary container, drifting */
+const DRAFT_GRADIENT = (p: Palette) => `linear-gradient(120deg, ${p.primaryContainer}, ${p.tertiaryContainer}, ${p.primary}, ${p.secondaryContainer}, ${p.primaryContainer})`;
+const BASE_PATH = process.env.PUBLIC_BASE_PATH ?? "";
 
 /** the icon rail on the left edge of the parts / layers panel */
 const RAIL_W = 52;
@@ -168,8 +173,7 @@ function ThinkingRing({ p, frame }: { p: Palette; frame: Frame }) {
       style={s({ position: "absolute", inset: 0, pointerEvents: "none" })}
     >
       <motion.div
-        animate={still ? undefined : { rotate: 360 }}
-        transition={{ repeat: Infinity, duration: 3.2, ease: "linear" }}
+        class={still ? undefined : "m3-spin"}
         style={s({
           position: "absolute",
           left: "50%",
@@ -200,15 +204,20 @@ const LEFT_TABS: { key: LeftTab; icon: string; title: "parts" | "layers" | "colo
 
 export default function Page() {
   /* ---------- document ---------- */
-  const [groups, setGroups] = useState<Group[]>(() => (phoneViewport() ? mobileSeed() : seed()));
-  const [frames, setFrames] = useState<Frame[]>(() => (phoneViewport() ? [mobileHomeFrame()] : SEED_FRAMES));
+  const initialLang = detectLang();
+  const [editAccess, setEditAccess] = useState<"checking" | "editable" | "readonly">("checking");
+  const [groups, setGroups] = useState<Group[]>(() => (phoneViewport() ? mobileSeed(initialLang) : seed(initialLang)));
+  const [frames, setFrames] = useState<Frame[]>(() => (phoneViewport() ? [mobileHomeFrame(initialLang)] : [{ ...SEED_FRAMES[0], name: t("home", initialLang) }]));
   const [paletteKey, setPaletteKey] = useState("purple");
   const [customPalette, setCustomPalette] = useState<Palette | null>(null);
   const [dynamicColor, setDynamicColor] = useState(false);
   const [theme, setTheme] = useState<Theme>(DEFAULT_THEME);
   const patchTheme = (patch: Partial<Theme>) => setTheme((t) => ({ ...t, ...patch }));
   const [frame, setFrame] = useState<FrameMode>("phone");
-  const [lang, setLang] = useState<Lang>("ja");
+  const [lang, setLang] = useState<Lang>(() => {
+    setGlobalLang(initialLang);
+    return initialLang;
+  });
   const [isMobile, setIsMobile] = useState(phoneViewport);
   /** keep the board hidden until the first fit, so a phone never flashes the desktop pan */
   const [viewReady, setViewReady] = useState(false);
@@ -265,6 +274,17 @@ export default function Page() {
   const [aiNote, setAiNote] = useState<{ text: string; icon: string } | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shareIdea, setShareIdea] = useState("");
+  /** a model is drafting a design right now */
+  const [draftBusy, setDraftBusy] = useState(false);
+  /** the design a draft replaced, kept until the author keeps or undoes the draft */
+  const [draftBefore, setDraftBefore] = useState<Doc | null>(null);
+  const draftBeforeRef = useRef<Doc | null>(null);
+  /** true for the moment after a design arrives, so its colours ease over */
+  const [revealing, setRevealing] = useState(false);
+  const revealTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** true after a kept draft until the author undoes something, so the header's undo also sits by the opener */
+  const [quickUndo, setQuickUndo] = useState(false);
+  const guideRef = useRef<string | null>(null);
   const projectFileRef = useRef<HTMLInputElement>(null);
   const aiNoteTimer = useRef<number | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
@@ -298,6 +318,7 @@ export default function Page() {
   frameRef.current = frame();
   const mobileRef = useRef(isMobile);
   mobileRef.current = isMobile();
+  draftBeforeRef.current = draftBefore();
   /** active touch points, for pinch zoom */
   const touchesRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<{
@@ -340,6 +361,7 @@ export default function Page() {
   };
 
   const undo = useCallback(() => {
+    setQuickUndo(false);
     const prev = history.undo(currentSnap());
     if (prev) restore(prev);
   }, []);
@@ -354,6 +376,41 @@ export default function Page() {
   });
 
   /* ---------- persistence ---------- */
+  onMount(() => {
+    /* The first tab keeps this promise pending for its lifetime. Later tabs get
+       `null` immediately and stay read-only until they are reloaded. Where the
+       browser has no locks (an insecure origin, an old WebKit) the editor works
+       as it always did, without the guard. */
+    if (!navigator.locks) {
+      setEditAccess("editable");
+      return;
+    }
+    let active = true;
+    let releaseLock: (() => void) | undefined;
+    queueMicrotask(() => {
+      if (!active) return;
+      void navigator.locks
+        .request(DOC_LOCK, { ifAvailable: true }, async (lock) => {
+          if (!active) return;
+          if (!lock) {
+            setEditAccess("readonly");
+            return;
+          }
+          setEditAccess("editable");
+          await new Promise<void>((resolve) => {
+            releaseLock = resolve;
+          });
+        })
+        .catch(() => {
+          if (active) setEditAccess("editable");
+        });
+    });
+    onCleanup(() => {
+      active = false;
+      releaseLock?.();
+    });
+  });
+
   const applyDoc = (doc: Partial<Doc>, reset: boolean) => {
     const next = hydrateDoc(
       doc,
@@ -390,6 +447,15 @@ export default function Page() {
       hadDocRef.current = true;
       applyDoc(d, false);
     }
+    try {
+      const before = d ? localStorage.getItem(BEFORE_KEY) : null;
+      if (!d) localStorage.removeItem(BEFORE_KEY);
+      if (before) {
+        const value: unknown = JSON.parse(before);
+        if (isProject(value)) setDraftBefore(value);
+        else localStorage.removeItem(BEFORE_KEY);
+      }
+    } catch {}
     const ui = readStoredUi();
     if (ui) {
       if (ui.view && !phoneViewport()) setView(ui.view);
@@ -399,11 +465,10 @@ export default function Page() {
       if (ui.rightW) setRightW(ui.rightW);
       if (Array.isArray(ui.favorites)) setFavorites(ui.favorites);
       if (ui.mode && !phoneViewport()) setMode(ui.mode);
-      if (isLang(ui.lang)) setLang(ui.lang);
-    } else {
-      const nl = (navigator.language ?? "").toLowerCase();
-      if (nl.startsWith("zh")) setLang("zh");
-      else if (!nl.startsWith("ja")) setLang("en");
+      if (isLang(ui.lang)) {
+        setLang(ui.lang);
+        setGlobalLang(ui.lang);
+      }
     }
     queueMicrotask(() => fitRef.current({ reveal: true }));
     setAiSettings(loadAiSettings());
@@ -491,7 +556,7 @@ export default function Page() {
   });
 
   useEffect(() => {
-    if (!loadedRef.current) return;
+    if (!loadedRef.current || editAccess() !== "editable") return;
     writeStoredDoc({
       groups: groups(),
       frames: frames(),
@@ -1653,6 +1718,11 @@ export default function Page() {
     setConfirmClear(false);
     if (groupsRef.current.length === 0 && framesRef.current.length === 0)
       return;
+    setDraftBefore(null);
+    setQuickUndo(false);
+    try {
+      localStorage.removeItem(BEFORE_KEY);
+    } catch {}
     snapshot();
     setGroups([]);
     setFrames([]);
@@ -1664,6 +1734,12 @@ export default function Page() {
    *  document goes through, then starts the editor fresh on it. */
   const importDoc = (next: Doc) => {
     hadDocRef.current = true;
+    snapshot();
+    setDraftBefore(null);
+    setQuickUndo(false);
+    try {
+      localStorage.removeItem(BEFORE_KEY);
+    } catch {}
     applyDoc(next, true);
     if (!mobileRef.current) {
       const nextFrame = next.frame === "blank" ? "blank" : "phone";
@@ -1679,16 +1755,87 @@ export default function Page() {
     queueMicrotask(() => fitRef.current());
   };
 
+  /** A design that arrived from a model or a link takes the canvas with its colours easing
+   *  over; the design it replaced waits in `draftBefore` until the author keeps or undoes it. */
+  const arrive = (next: Doc) => {
+    /* the phone editor has no keep / undo buttons: a link simply opens there, undoable as usual */
+    if (mobileRef.current) {
+      importDoc(next);
+      return;
+    }
+    const before = draftBeforeRef.current ?? {
+      groups: groupsRef.current,
+      frames: framesRef.current,
+      paletteKey: paletteKey(),
+      frame: frame(),
+      title: title(),
+      brief: brief(),
+      promptEdit: promptEdit(),
+      platform: platform() ?? undefined,
+      customPalette: customPalette() ?? undefined,
+      dynamicColor: dynamicColor(),
+      theme: theme(),
+    };
+    setRevealing(true);
+    if (revealTimer.current) clearTimeout(revealTimer.current);
+    revealTimer.current = setTimeout(() => setRevealing(false), 900);
+    importDoc(next);
+    setDraftBefore(before);
+    try {
+      localStorage.setItem(BEFORE_KEY, JSON.stringify(before));
+    } catch {}
+  };
+
+  const startDraft = async (idea: string) => {
+    setShareOpen(false);
+    setDraftBusy(true);
+    try {
+      if (guideRef.current === null) {
+        const res = await fetch(`${BASE_PATH}/agent.md`);
+        if (!res.ok) throw new Error("guide");
+        guideRef.current = await res.text();
+      }
+      const next = await draftDesign(aiSettings(), guideRef.current, idea, lang());
+      arrive(next);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : "";
+      showToast(m === "json" ? t("aiErrorJson", lang()) : m === "refusal" ? t("aiErrorRefusal", lang()) : m === "long" ? t("aiErrorLong", lang()) : t("aiError", lang()), 3200, "error");
+    } finally {
+      setDraftBusy(false);
+    }
+  };
+  const keepDraft = () => {
+    setDraftBefore(null);
+    setQuickUndo(true);
+    try {
+      localStorage.removeItem(BEFORE_KEY);
+    } catch {}
+  };
+  const undoDraft = () => {
+    if (draftBefore()) {
+      setRevealing(true);
+      if (revealTimer.current) clearTimeout(revealTimer.current);
+      revealTimer.current = setTimeout(() => setRevealing(false), 900);
+      importDoc(draftBefore());
+    }
+    setDraftBefore(null);
+  };
+
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (editAccess() !== "editable" || typeof window === "undefined") return;
     let active = true;
     const offer = () => {
       if (!hasShareHash(window.location.hash)) return;
       void readShareHash(window.location.hash).then((next) => {
         if (!active) return;
-        clearShareHash();
-        if (next) importDoc(next);
-        else showToast(t("invalidProject", lang()), 3000, "error");
+        if (next) {
+          setShareOpen(false);
+          arrive(next);
+          clearShareHash();
+        } else {
+          clearShareHash();
+          showToast(t("invalidProject", lang()), 3000, "error");
+        }
       });
     };
     offer();
@@ -1697,7 +1844,7 @@ export default function Page() {
       active = false;
       window.removeEventListener("hashchange", offer);
     };
-  }, []);
+  }, [editAccess]);
 
   const selectedFrame = useMemo(
     () => frames().find((f) => f.id === selectedFrameId()) ?? null,
@@ -1867,6 +2014,19 @@ export default function Page() {
     setGroups(after);
   };
 
+  /** sets where Tidy puts a screen's body, then tidies it that way */
+  const setPlace = (f: Frame, place: Place) => {
+    const next: Frame = { ...f, place: place === "top" ? undefined : place };
+    snapshot();
+    const nextFrames = framesRef.current.map((o) => (o.id === f.id ? next : o));
+    setFrames(nextFrames);
+    tidyRef.current = null;
+    const after = tidyFrame(groupsRef.current, next, nextFrames, widthsRef.current);
+    if (!after) return;
+    tidyRef.current = { frameId: f.id, before: groupsRef.current, after };
+    setGroups(after);
+  };
+
   const toastTimer = useRef<number | null>(null);
   /** the desktop's message pill beside the tidy button; the phone keeps its centered toast */
   const showAiNote = (text: string, icon = "check", ms = 2200) => {
@@ -1891,13 +2051,13 @@ export default function Page() {
   };
 
   const aiReady = hasKey(aiSettings()) && aiSettings().model.trim().length > 0 && isSecureUrl(aiSettings().baseUrl);
-  const aiReason = !aiReady ? t("aiNoKey", lang) : !tidyTarget() ? t("aiSelectScreen", lang) : undefined;
+  const aiReason = !aiReady ? t("aiNoKey", lang()) : !tidyTarget() ? t("aiSelectScreen", lang()) : undefined;
 
   /** Writes one field with the model: a part's behavior note, or a screen's description.
    *  The result goes straight in; the field remembers what it said so the rewrite can be undone. */
   const runAi = async (action: AiActionKey, f: Frame, itemId?: string) => {
     if (!aiReady) {
-      showToast(t("aiNoKey", lang));
+      showToast(t("aiNoKey", lang()));
       return;
     }
     const curDoc = doc;
@@ -1912,21 +2072,21 @@ export default function Page() {
         if (ac.signal.aborted) return;
         snapshot();
         setFrames((fs) => fs.map((x) => (x.id === f.id ? { ...x, note: r.note, noteHistory: pushHistory(x.noteHistory, x.note), name: r.name ?? x.name } : x)));
-        showAiNote(t("aiApplied", lang));
+        showAiNote(t("aiApplied", lang()));
         return;
       }
       if (!itemId) return;
       const note = await proposeBehavior(aiSettings, curDoc, widthsRef.current, f, lang, itemId, ac.signal);
       if (ac.signal.aborted) return;
       if (!note) {
-        showToast(t("aiErrorJson", lang));
+        showToast(t("aiErrorJson", lang()));
         return;
       }
       snapshot();
       setGroups((gs) => gs.map((g) => (g.items.some((it) => it.id === itemId) ? { ...g, items: g.items.map((it) => (it.id === itemId ? { ...it, note, noteHistory: pushHistory(it.noteHistory, it.note) } : it)) } : g)));
-      showAiNote(t("aiApplied", lang));
+      showAiNote(t("aiApplied", lang()));
     } catch (e) {
-      if (!ac.signal.aborted) showToast(aiErrorText(e, lang), 4000, "error");
+      if (!ac.signal.aborted) showToast(aiErrorText(e, lang()), 4000, "error");
     } finally {
       if (aiAbortRef.current === ac) {
         aiAbortRef.current = null;
@@ -2429,6 +2589,42 @@ export default function Page() {
     setGroups((gs) => [...gs.filter((g) => !inFrame.has(g.id)), ...ordered]);
   };
 
+  const layerDragRef = useRef(false);
+  const onLayerDragging = (dragging: boolean) => {
+    if (dragging && !layerDragRef.current) snapshot();
+    layerDragRef.current = dragging;
+  };
+  const layerSnapshot = (key: string) => {
+    if (!layerDragRef.current) snapshotFor(key);
+  };
+
+  /** The parts of one group in a new order: reading order for a connected run, back to
+   *  front for a free group. */
+  const reorderGroupItems = (groupId: string, order: string[]) => {
+    const g = groupsRef.current.find((x) => x.id === groupId);
+    if (!g) return;
+    const byId = new Map(g.items.map((it) => [it.id, it]));
+    const items = order.map((id) => byId.get(id)).filter((it): it is Item => !!it);
+    if (items.length !== g.items.length || new Set(order).size !== order.length) return;
+    layerSnapshot("layers:items:" + groupId);
+    instantRef.current.add(groupId);
+    if (!g.free) {
+      setGroups((gs) => gs.map((x) => (x.id === groupId ? { ...x, items } : x)));
+      return;
+    }
+    const rank = new Map(items.map((it, i) => [it.id, i]));
+    const pos = { ...(g.pos ?? {}) };
+    for (const run of explodeGroup(g, widthsRef.current)) {
+      if (run.items.length < 2) continue;
+      const slots = run.items.map((it) => pos[it.id] ?? { x: 0, y: 0 });
+      const members = [...run.items].sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+      members.forEach((it, i) => {
+        pos[it.id] = slots[i];
+      });
+    }
+    setGroups((gs) => gs.map((x) => (x.id === groupId ? { ...x, items, pos } : x)));
+  };
+
   const renderGroup = (g: Group, ox: number, oy: number) => {
     if (g.free) {
       const instantG = instantRef.current.has(g.id);
@@ -2582,7 +2778,9 @@ export default function Page() {
     <LangContext.Provider value={lang}>
     <ThemeContext.Provider value={theme}>
       <div
-        class="app-root"
+        class={revealing() ? "app-root m3e-reveal" : "app-root"}
+        inert={editAccess() !== "editable" ? true : undefined}
+        aria-hidden={editAccess() !== "editable"}
         style={s({
           display: "flex",
           overflow: "hidden",
@@ -2601,7 +2799,7 @@ export default function Page() {
             top: 0,
             visibility: "hidden",
             pointerEvents: "none",
-            fontFamily: fontFamilyOf(theme().font),
+            fontFamily: fontFamilyOf(theme().font, lang()),
           })}
         >
           {allItems()
@@ -2631,7 +2829,7 @@ export default function Page() {
         </div>
 
         {exportFrame() && (
-          <div aria-hidden style={s({ position: "fixed", left: -99999, top: 0, pointerEvents: "none", fontFamily: fontFamilyOf(theme().font) })}>
+          <div aria-hidden style={s({ position: "fixed", left: -99999, top: 0, pointerEvents: "none", fontFamily: fontFamilyOf(theme().font, lang()) })}>
             {renderExport(exportFrame)}
           </div>
         )}
@@ -2659,7 +2857,7 @@ export default function Page() {
               })}
             >
               {!leftOpen() && railHover ? (
-                <IconBtn icon="left_panel_open" p={p()} on onClick={() => setLeftOpen(true)} title={t("openPanel", lang)} size={40} />
+                <IconBtn icon="left_panel_open" p={p()} on onClick={() => setLeftOpen(true)} title={t("openPanel", lang())} size={40} />
               ) : (
                 <div
                   onClick={() => !leftOpen() && setLeftOpen(true)}
@@ -2679,7 +2877,7 @@ export default function Page() {
                       setLeftTab(tab.key);
                       setLeftOpen(true);
                     }}
-                    title={t(tab.title, lang)}
+                    title={t(tab.title, lang())}
                     size={44}
                   />
                 </div>
@@ -2706,13 +2904,13 @@ export default function Page() {
                     flex: 1,
                   })}
                 >
-                  {t(LEFT_TABS.find((x) => x.key === leftTab)?.title ?? "parts", lang)}
+                  {t(LEFT_TABS.find((x) => x.key === leftTab)?.title ?? "parts", lang())}
                 </span>
                 <IconBtn
                   icon="left_panel_close"
                   p={p()}
                   onClick={() => setLeftOpen(false)}
-                  title={t("closePanel", lang)}
+                  title={t("closePanel", lang())}
                 />
               </div>
               <div style={s({ flex: 1, minHeight: 0 })}>
@@ -2759,6 +2957,7 @@ export default function Page() {
                       setSelectedFrameId(id);
                     }}
                     groups={layerGroups()}
+                    widths={widths()}
                     selectedIds={selectedIds()}
                     onSelect={(ids, add) => {
                       setSelectedIds((cur) => (add ? [...cur.filter((x) => !ids.includes(x)), ...ids] : ids));
@@ -2767,6 +2966,8 @@ export default function Page() {
                       setRightTab("edit");
                     }}
                     onReorder={reorderLayers}
+                    onReorderItems={reorderGroupItems}
+                    onDragging={onLayerDragging}
                   />
                 )}
               </div>
@@ -2825,7 +3026,7 @@ export default function Page() {
                 transition: cameraEasing() ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined,
                 willChange: "transform",
                 visibility: viewReady() ? "visible" : "hidden",
-                fontFamily: fontFamilyOf(theme().font),
+                fontFamily: fontFamilyOf(theme().font, lang()),
               })}
             >
               {frame() === "phone" &&
@@ -2860,13 +3061,13 @@ export default function Page() {
                           cursor: handMode ? "grab" : "move",
                           userSelect: "none",
                           whiteSpace: "nowrap",
-                          fontFamily: "Roboto, system-ui, sans-serif",
+                          fontFamily: uiFontFamily(lang()),
                         })}
                       >
                         <div onPointerDown={(e) => e.stopPropagation()}>
                           <FrameSizePicker frame={f} onChange={(preset) => setFramePreset(f.id, preset)} palette={p()} compact />
                         </div>
-                        {f.name || t("screen", lang)}
+                        {f.name || t("screen", lang())}
                       </div>
                       <div
                         onPointerDown={(e) => onFramePointerDown(e, f)}
@@ -2878,7 +3079,9 @@ export default function Page() {
                           width: w + BEZEL * 2,
                           height: h + BEZEL * 2,
                           borderRadius: radius + BEZEL,
-                          background: p().inverseSurface,
+                          background: draftBusy() ? DRAFT_GRADIENT(p()) : p().inverseSurface,
+                          backgroundSize: draftBusy() ? "300% 300%" : undefined,
+                          animation: draftBusy() ? "m3e-drift 3s ease-in-out infinite" : undefined,
                           boxShadow: on
                             ? `0 0 0 3px ${p().primary}, 0 18px 50px rgba(0,0,0,0.16)`
                             : "0 18px 50px rgba(0,0,0,0.14)",
@@ -2904,6 +3107,11 @@ export default function Page() {
                           {groups()
                             .filter((g) => frameOf().get(g.id) === f.id)
                             .map((g) => renderGroup(g, f.x, f.y))}
+                          {draftBusy() && (
+                            <div style={s({ position: "absolute", inset: 0, zIndex: 90, background: canvasBg, display: "grid", placeItems: "center" })}>
+                              <LoadingIndicator size={96} color="url(#m3e-drafting)" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3062,7 +3270,7 @@ export default function Page() {
                       p={p()}
                       danger
                       onClick={() => removeLink(l.id)}
-                      title={t("removeLink", lang)}
+                      title={t("removeLink", lang())}
                       size={36}
                     />
                   </div>
@@ -3113,6 +3321,19 @@ export default function Page() {
             </div>
           </div>
 
+          {draftBusy() && (
+            <div style={s({ position: "absolute", width: 0, height: 0, overflow: "hidden" })} aria-hidden>
+              <svg width={0} height={0} style={s({ position: "absolute" })} aria-hidden>
+                <defs>
+                  <linearGradient id="m3e-drafting" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color={p().primary} />
+                    <stop offset="50%" stop-color={p().tertiaryContainer} />
+                    <stop offset="100%" stop-color={p().primaryContainer} />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          )}
           <Toolbar
             p={p()}
             mode={mode()}
@@ -3131,20 +3352,27 @@ export default function Page() {
             }}
             onAddFrame={addFrame}
             onPreview={() => openPreview()}
-            tidy={tidyState() ?? undefined}
-            onTidy={tidyTarget() ? () => tidy(tidyTarget) : undefined}
+            tidy={selectedIds().length > 1 ? undefined : tidyState() ?? undefined}
+            onTidy={tidyTarget() ? () => tidy(tidyTarget()) : undefined}
+            place={tidyTarget()?.place}
+            onPlace={tidyTarget() ? (pl) => setPlace(tidyTarget(), pl) : undefined}
             note={aiNote()}
             onSaveProject={() => saveProject(doc())}
             onOpenProject={() => projectFileRef.current?.click()}
-            onShare={() => setShareOpen(true)}
+            onShare={!isMobile() ? () => setShareOpen(true) : undefined}
+            shareState={draftBusy() ? "busy" : draftBefore() ? "review" : "idle"}
+            onDraftKeep={keepDraft}
+            onDraftUndo={undoDraft}
+            onDraftSave={() => saveProject(doc())}
+            quickUndo={quickUndo()}
             rightInset={showRight ? rightW : 0}
             mobile={isMobile()}
             onSettings={() => setSheet(sheet() === "settings" ? null : "settings")}
             onLangSheet={() => setSheet(sheet() === "lang" ? null : "lang")}
             onPrompt={async () => {
               try {
-                await navigator.clipboard.writeText(effectivePrompt(doc, widths, lang));
-                showToast(t("copied", lang), 1400, "check");
+                await navigator.clipboard.writeText(effectivePrompt(doc, widths, lang()));
+                showToast(t("copied", lang()), 1400, "check");
               } catch {}
             }}
           />
@@ -3164,15 +3392,15 @@ export default function Page() {
                 zIndex: 40,
               })}
             >
-              {t("mobileNote", lang)}
+              {t("mobileNote", lang())}
             </div>
           )}
 
           {isMobile() && sheet() === null && (
             <button
               onClick={addButton}
-              title={t("addButton", lang)}
-              aria-label={t("addButton", lang)}
+              title={t("addButton", lang())}
+              aria-label={t("addButton", lang())}
               class="m3-press"
               style={s({
                 position: "absolute",
@@ -3269,7 +3497,7 @@ export default function Page() {
                 p={p()}
                 on
                 onClick={() => setRightOpen(true)}
-                title={t("edit", lang)}
+                title={t("edit", lang())}
                 size={44}
               />
             </div>
@@ -3305,8 +3533,8 @@ export default function Page() {
               <div style={s({ flex: 1, minWidth: 0 })}>
                 <Segmented<"edit" | "prompt">
                   options={[
-                    { key: "edit", icon: "tune", title: t("edit", lang), grow: false, wide: true },
-                    { key: "prompt", icon: "auto_awesome", label: t("prompt", lang), title: t("prompt", lang), grow: true },
+                    { key: "edit", icon: "tune", title: t("edit", lang()), grow: false, wide: true },
+                    { key: "prompt", icon: "auto_awesome", label: t("prompt", lang()), title: t("prompt", lang()), grow: true },
                   ]}
                   value={rightTab()}
                   onChange={setRightTab}
@@ -3318,7 +3546,7 @@ export default function Page() {
                 icon="right_panel_close"
                 p={p()}
                 onClick={() => setRightOpen(false)}
-                title={t("closePanel", lang)}
+                title={t("closePanel", lang())}
               />
             </div>
             <div style={s({ flex: 1, minHeight: 0 })}>
@@ -3336,6 +3564,7 @@ export default function Page() {
                   frames={frames()}
                   tidy={tidyState() ?? "done"}
                   onTidy={() => tidy(selectedFrame())}
+                  onPlace={(pl) => setPlace(selectedFrame(), pl)}
                   ai={{ ready: aiReady, reason: aiReason, busy: aiBusy() && aiFrameId() === selectedFrame().id, onRun: () => runAi("describe", selectedFrame()), onCancel: cancelAi }}
                 />
               ) : rightTab() === "edit" ? (
@@ -3386,7 +3615,7 @@ export default function Page() {
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
-            if (file) void readProject(file).then((next) => (next ? setPendingImport(next) : showToast(t("invalidProject", lang), 3000, "error")));
+            if (file) void readProject(file).then((next) => (next ? setPendingImport(next) : showToast(t("invalidProject", lang()), 3000, "error")));
           }}
         />
 
@@ -3398,7 +3627,7 @@ export default function Page() {
           onIdea={setShareIdea}
           open={shareOpen()}
           onClose={() => setShareOpen(false)}
-          onDraft={() => setShareOpen(false)}
+          onDraft={startDraft}
           onSetupAi={() => {
             setShareOpen(false);
             setRightTab("edit");
@@ -3409,8 +3638,8 @@ export default function Page() {
         <ConfirmDialog
           open={pendingImport() !== null}
           icon="file_open"
-          title={t("replaceProjectTitle", lang)}
-          body={t("replaceProject", lang)}
+          title={t("replaceProjectTitle", lang())}
+          body={t("replaceProject", lang())}
           p={p()}
           onCancel={() => setPendingImport(null)}
           onConfirm={() => {
@@ -3421,8 +3650,8 @@ export default function Page() {
 
         <ConfirmDialog
           open={confirmClear()}
-          title={t("clearAllTitle", lang)}
-          body={t("clearAllBody", lang)}
+          title={t("clearAllTitle", lang())}
+          body={t("clearAllBody", lang())}
           p={p()}
           onCancel={() => setConfirmClear(false)}
           onConfirm={clearAll}
@@ -3441,6 +3670,62 @@ export default function Page() {
           )}
         </AnimatePresence>
       </div>
+
+      {editAccess() === "readonly" && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-access-title"
+          style={s({
+            position: "fixed",
+            inset: 0,
+            zIndex: 100,
+            display: "grid",
+            placeItems: "center",
+            padding: 24,
+            background: "rgba(0,0,0,0.32)",
+          })}
+        >
+            <div
+              style={s({
+                width: "min(420px, 100%)",
+                padding: 24,
+                borderRadius: 28,
+                background: p().surfaceContainerHigh,
+                color: p().onSurface,
+                boxShadow: "0 12px 40px rgba(0,0,0,0.22)",
+              })}
+            >
+              <Icon name="lock" size={28} />
+              <h1 id="edit-access-title" style={s({ margin: "16px 0 8px", fontSize: 22, lineHeight: 1.25 })}>
+                {t("readOnlyTitle", lang())}
+              </h1>
+              <p style={s({ margin: 0, color: p().onSurfaceVariant, fontSize: 14, lineHeight: 1.5 })}>
+                {t("readOnlyBody", lang())}
+              </p>
+              <div style={s({ display: "flex", justifyContent: "flex-end", marginTop: 24 })}>
+                <button
+                  autofocus
+                  class="m3-press"
+                  onClick={() => window.location.reload()}
+                  style={s({
+                    minHeight: 40,
+                    padding: "0 20px",
+                    border: "none",
+                    borderRadius: 20,
+                    background: p().primary,
+                    color: p().onPrimary,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                  })}
+                >
+                  {t("reload", lang())}
+                </button>
+              </div>
+            </div>
+        </div>
+      )}
     </ThemeContext.Provider>
     </LangContext.Provider>
   );
