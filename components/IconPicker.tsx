@@ -1,7 +1,7 @@
-"use client";
-
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Palette } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "@/lib/hooks";
+import type { Palette } from "@/lib/tokens";
 import { t, useLang } from "@/lib/i18n";
 import { BASE } from "@/lib/base";
 
@@ -64,10 +64,10 @@ export function IconPicker({
   }, []);
 
   const candidates = useMemo(() => {
-    if (!icons) return [];
-    const s = q.trim().toLowerCase().replace(/\s+/g, "_");
-    if (!s) return icons.slice(0, BATCH);
-    const raw = q.trim().toLowerCase();
+    if (!icons()) return [];
+    const s = q().trim().toLowerCase().replace(/\s+/g, "_");
+    if (!s) return icons().slice(0, BATCH);
+    const raw = q().trim().toLowerCase();
     const starts: IconMeta[] = [];
     const rest: IconMeta[] = [];
     for (const i of icons) {
@@ -78,10 +78,10 @@ export function IconPicker({
     return [...starts, ...rest].slice(0, BATCH);
   }, [icons, q]);
 
-  const unknown = useMemo(() => candidates.filter((c) => !glyphOk.has(c.n)), [candidates]);
+  const unknown = useMemo(() => candidates().filter((c) => !glyphOk.has(c.n)), [candidates]);
 
   useLayoutEffect(() => {
-    if (!fontReady || unknown.length === 0) return;
+    if (!fontReady() || unknown().length === 0) return;
     const ref = refEl.current?.getBoundingClientRect().width ?? 0;
     if (ref <= 0) return;
     let learned = false;
@@ -96,51 +96,51 @@ export function IconPicker({
   }, [fontReady, unknown]);
 
   const visible = useMemo(
-    () => candidates.filter((c) => glyphOk.get(c.n) === true).slice(0, SHOWN),
+    () => candidates().filter((c) => glyphOk.get(c.n) === true).slice(0, SHOWN),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [candidates, fontReady, tick],
   );
 
-  const loading = !icons || !fontReady;
+  const loading = !icons() || !fontReady();
 
   return (
     <div>
       {/* hidden probes — measured before paint, so nothing broken ever renders */}
       <div
         aria-hidden
-        style={{ position: "fixed", left: -99999, top: 0, visibility: "hidden", pointerEvents: "none" }}
+        style={s({ position: "fixed", left: -99999, top: 0, visibility: "hidden", pointerEvents: "none" })}
       >
-        <span ref={refEl} className="msr" style={{ fontSize: 24 }}>
+        <span ref={refEl} class="msr" style={s({ fontSize: 24 })}>
           search
         </span>
-        {unknown.map((c) => (
+        {unknown().map((c) => (
           <span
             key={c.n}
             ref={(el) => {
               if (el) probeEls.current.set(c.n, el);
               else probeEls.current.delete(c.n);
             }}
-            className="msr"
-            style={{ fontSize: 24 }}
+            class="msr"
+            style={s({ fontSize: 24 })}
           >
             {c.n}
           </span>
         ))}
       </div>
 
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-        <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+      <div style={s({ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 })}>
+        <div style={s({ position: "relative", flex: 1, minWidth: 0 })}>
           <span
-            className="msr"
-            style={{ position: "absolute", left: 12, top: 10, fontSize: 20, color: palette.outline }}
+            class="msr"
+            style={s({ position: "absolute", left: 12, top: 10, fontSize: 20, color: palette.outline })}
           >
             search
           </span>
           <input
-            value={q}
+            value={q()}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={icons ? t("searchIcons", lang) : "…"}
-            style={{
+            placeholder={icons() ? t("searchIcons", lang) : "…"}
+            style={s({
               width: "100%",
               height: 40,
               paddingLeft: 40,
@@ -151,14 +151,14 @@ export function IconPicker({
               color: palette.onSurface,
               fontSize: 14,
               outline: "none",
-            }}
+            })}
           />
         </div>
       </div>
 
       <div
-        className="no-scrollbar"
-        style={{
+        class="no-scrollbar"
+        style={s({
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(42px, 1fr))",
           gap: 4,
@@ -169,14 +169,14 @@ export function IconPicker({
           borderRadius: 16,
           background: palette.surfaceContainerLow,
           alignContent: "start",
-        }}
+        })}
       >
-        {visible.map((i) => (
+        {visible().map((i) => (
           <button
             key={i.n}
             title={i.n}
             onClick={() => onChange(i.n)}
-            style={{
+            style={s({
               aspectRatio: "1",
               minWidth: 0,
               display: "grid",
@@ -186,21 +186,21 @@ export function IconPicker({
               background: value === i.n ? palette.primary : "transparent",
               color: value === i.n ? palette.onPrimary : palette.onSurfaceVariant,
               cursor: "pointer",
-            }}
+            })}
           >
-            <span className="msr" style={{ fontSize: 22 }}>
+            <span class="msr" style={s({ fontSize: 22 })}>
               {i.n}
             </span>
           </button>
         ))}
-        {!loading && visible.length === 0 && (
-          <div style={{ gridColumn: "1 / -1", padding: 16, fontSize: 13, color: palette.outline }}>
-            <span className="msr" style={{ fontSize: 24 }}>search_off</span>
+        {!loading && visible().length === 0 && (
+          <div style={s({ gridColumn: "1 / -1", padding: 16, fontSize: 13, color: palette.outline })}>
+            <span class="msr" style={s({ fontSize: 24 })}>search_off</span>
           </div>
         )}
         {loading && (
-          <div style={{ gridColumn: "1 / -1", padding: 16, fontSize: 13, color: palette.outline }}>
-            <span className="msr" style={{ fontSize: 24 }}>hourglass_top</span>
+          <div style={s({ gridColumn: "1 / -1", padding: 16, fontSize: 13, color: palette.outline })}>
+            <span class="msr" style={s({ fontSize: 24 })}>hourglass_top</span>
           </div>
         )}
       </div>

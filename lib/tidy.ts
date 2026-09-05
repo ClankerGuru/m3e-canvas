@@ -1,4 +1,5 @@
-import { FULL_WIDTH, Frame, Group, Item, Kind, PHONE_MARGIN, RAIL_W, canJoin, carryItemSize, connectSpecOf, frameOfGroup, frameRect, frameSizeOf, groupBounds, isExpanded } from "./tokens";
+import { FULL_WIDTH, PHONE_MARGIN, RAIL_W, canJoin, carryItemSize, connectSpecOf, frameOfGroup, frameRect, frameSizeOf, groupBounds, isExpanded } from "./tokens";
+import type { Frame, Group, Item, Kind } from "./tokens";
 
 /* Rule-based layout for one screen. Nothing here is guessed by a model.
  *

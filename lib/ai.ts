@@ -1,6 +1,7 @@
-import { Doc, Frame, Group, Item, frameOfGroup } from "./tokens";
+import { frameOfGroup } from "./tokens";
+import type { Doc, Frame, Group, Item } from "./tokens";
 import { buildPrompt } from "./prompt";
-import { Lang } from "./i18n";
+import type { Lang } from "./i18n";
 
 /* Optional AI helpers. The browser talks to the model provider directly with the
  * author's own key; there is no server in between. Every action has a fixed

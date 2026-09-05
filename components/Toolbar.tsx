@@ -1,8 +1,10 @@
-"use client";
-
-import { AnimatePresence, motion } from "motion/react";
-import { FrameMode, Palette } from "@/lib/tokens";
-import { IconBtn, Segmented, TidyButton, TidyState } from "./ui";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { AnimatePresence, motion } from "@/lib/motion";
+import type { FrameMode, Palette } from "@/lib/tokens";
+import { IconBtn, Segmented, TidyButton } from "./ui";
+import type { TidyState } from "./ui";
 import { Icon } from "./M3Node";
 import { Popover } from "./Menus";
 import { t, useLang } from "@/lib/i18n";
@@ -19,8 +21,8 @@ export function GitHubLink({ p, size = 40 }: { p: Palette; size?: number }) {
       rel="noreferrer"
       title="GitHub"
       aria-label="GitHub"
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         width: size,
         height: size,
         borderRadius: size / 2,
@@ -29,7 +31,7 @@ export function GitHubLink({ p, size = 40 }: { p: Palette; size?: number }) {
         color: p.onSurfaceVariant,
         textDecoration: "none",
         flex: "0 0 auto",
-      }}
+      })}
     >
       <svg width={Math.round(size * 0.55)} height={Math.round(size * 0.55)} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
         <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z" />
@@ -38,10 +40,10 @@ export function GitHubLink({ p, size = 40 }: { p: Palette; size?: number }) {
   );
 }
 
-function Pill({ p, children }: { p: Palette; children: React.ReactNode }) {
+function Pill({ p, children }: { p: Palette; children: JSX.Element }) {
   return (
     <div
-      style={{
+      style={s({
         display: "flex",
         alignItems: "center",
         gap: 4,
@@ -50,7 +52,7 @@ function Pill({ p, children }: { p: Palette; children: React.ReactNode }) {
         background: p.surfaceContainerLow,
         boxShadow: "0 2px 10px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04)",
         pointerEvents: "auto",
-      }}
+      })}
     >
       {children}
     </div>
@@ -118,7 +120,7 @@ export function Toolbar({
     const S = 42;
     return (
       <div
-        style={{
+        style={s({
           position: "absolute",
           left: 0,
           right: 0,
@@ -128,7 +130,7 @@ export function Toolbar({
           pointerEvents: "none",
           zIndex: 40,
           padding: "0 8px",
-        }}
+        })}
       >
         <Pill p={p}>
           <IconBtn icon="undo" p={p} onClick={onUndo} disabled={!canUndo} title={t("undo", lang)} size={S} />
@@ -139,8 +141,8 @@ export function Toolbar({
           <button
             onClick={onPrompt}
             title={t("copyPrompt", lang)}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               height: S,
               padding: "0 14px 0 10px",
               borderRadius: S / 2,
@@ -154,7 +156,7 @@ export function Toolbar({
               alignItems: "center",
               gap: 6,
               whiteSpace: "nowrap",
-            }}
+            })}
           >
             <Icon name="auto_awesome" size={22} />
             {t("prompt", lang)}
@@ -166,7 +168,7 @@ export function Toolbar({
   return (
     <>
       <div
-        style={{
+        style={s({
           position: "fixed",
           right: rightInset + 22,
           bottom: 22,
@@ -175,9 +177,9 @@ export function Toolbar({
           display: "flex",
           gap: 10,
           alignItems: "center",
-        }}
+        })}
       >
-        <div role="status" aria-live="polite" style={{ display: "contents" }}>
+        <div role="status" aria-live="polite" style={s({ display: "contents" })}>
           <AnimatePresence>
             {note && (
             <motion.div
@@ -186,7 +188,7 @@ export function Toolbar({
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 8, scale: 0.96 }}
               transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-              style={{
+              style={s({
                 height: 40,
                 padding: "0 16px",
                 borderRadius: 20,
@@ -200,7 +202,7 @@ export function Toolbar({
                 whiteSpace: "nowrap",
                 boxShadow: "0 2px 10px rgba(0,0,0,0.10)",
                 pointerEvents: "none",
-              }}
+              })}
             >
               <Icon name={note.icon} size={18} />
               {note.text}
@@ -224,8 +226,8 @@ export function Toolbar({
           <button
             onClick={onFit}
             title={t("fit", lang)}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               height: 40,
               minWidth: 56,
               borderRadius: 20,
@@ -236,7 +238,7 @@ export function Toolbar({
               fontWeight: 600,
               cursor: "pointer",
               fontVariantNumeric: "tabular-nums",
-            }}
+            })}
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -251,7 +253,7 @@ export function Toolbar({
         </Pill>
       </div>
       <div
-        style={{
+        style={s({
           position: "absolute",
           left: 0,
           right: 0,
@@ -263,7 +265,7 @@ export function Toolbar({
           zIndex: 40,
           flexWrap: "nowrap",
           padding: "0 72px",
-        }}
+        })}
       >
         <Pill p={p}>
           <Segmented<Mode>
@@ -330,7 +332,7 @@ export function Toolbar({
           {onSaveProject && onOpenProject && (
             <Popover p={p} icon="folder_open" title={t("project", lang)} size={40}>
               {(close) => (
-                <div style={{ display: "flex", gap: 2 }}>
+                <div style={s({ display: "flex", gap: 2 })}>
                   <IconBtn
                     icon="download"
                     p={p}

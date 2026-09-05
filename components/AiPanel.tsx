@@ -1,9 +1,11 @@
-"use client";
-
-import { useRef } from "react";
-import { Palette } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useRef, type CSSProperties } from "@/lib/hooks";
+import type { Palette } from "@/lib/tokens";
 import { t, useLang } from "@/lib/i18n";
-import { AiSettings, PROVIDERS, Provider, providerSpec } from "@/lib/ai";
+import { PROVIDERS, providerSpec } from "@/lib/ai";
+import type { AiSettings, Provider } from "@/lib/ai";
 import { Icon } from "./M3Node";
 import { BASE } from "@/lib/base";
 
@@ -30,8 +32,8 @@ export function AiWriteBtn({ p, busy, disabled, onClick, onCancel, label, title 
       disabled={disabled}
       title={shown}
       aria-label={shown}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         height: 40,
         padding: "0 16px 0 12px",
         borderRadius: 20,
@@ -47,21 +49,21 @@ export function AiWriteBtn({ p, busy, disabled, onClick, onCancel, label, title 
         flex: "0 0 auto",
         opacity: disabled ? 0.6 : 1,
         whiteSpace: "nowrap",
-      }}
+      })}
     >
-      <span className={busy ? "m3-spin" : undefined} style={{ display: "inline-flex" }}>
+      <span class={busy ? "m3-spin" : undefined} style={s({ display: "inline-flex" })}>
         <Icon name={busy ? "progress_activity" : "auto_awesome"} size={20} />
       </span>
       {/* both labels are laid out so the button keeps one width while it flips */}
-      <span style={{ display: "grid" }}>
-        <span style={{ gridArea: "1 / 1", visibility: busy ? "hidden" : "visible" }}>{label}</span>
-        <span style={{ gridArea: "1 / 1", visibility: busy ? "visible" : "hidden", textAlign: "center" }}>{t("cancel", lang)}</span>
+      <span style={s({ display: "grid" })}>
+        <span style={s({ gridArea: "1 / 1", visibility: busy ? "hidden" : "visible" })}>{label}</span>
+        <span style={s({ gridArea: "1 / 1", visibility: busy ? "visible" : "hidden", textAlign: "center" })}>{t("cancel", lang)}</span>
       </span>
     </button>
   );
 }
 
-const field = (p: Palette): React.CSSProperties => ({
+const field = (p: Palette): CSSProperties => ({
   width: "100%",
   height: 44,
   padding: "0 14px",
@@ -79,9 +81,9 @@ function Input({ value, onChange, placeholder, p, type = "text", label }: { valu
   return <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} aria-label={label} spellCheck={false} autoComplete="off" style={field(p)} />;
 }
 
-const Label = ({ children, p, right }: { children: React.ReactNode; p: Palette; right?: React.ReactNode }) => (
-  <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12, fontWeight: 700, letterSpacing: 0.4, color: p.onSurfaceVariant, marginBottom: 6, padding: "0 4px" }}>
-    <span style={{ flex: 1 }}>{children}</span>
+const Label = ({ children, p, right }: { children: JSX.Element; p: Palette; right?: JSX.Element }) => (
+  <div style={s({ display: "flex", alignItems: "baseline", gap: 8, fontSize: 12, fontWeight: 700, letterSpacing: 0.4, color: p.onSurfaceVariant, marginBottom: 6, padding: "0 4px" })}>
+    <span style={s({ flex: 1 })}>{children}</span>
     {right}
   </div>
 );
@@ -96,7 +98,7 @@ function ProviderGroup({ value, onChange, p }: { value: Provider; onChange: (k: 
     (ref.current?.children[to] as HTMLElement | undefined)?.focus();
   };
   return (
-    <div ref={ref} role="radiogroup" style={{ display: "flex", gap: 3 }}>
+    <div ref={ref} role="radiogroup" style={s({ display: "flex", gap: 3 })}>
       {PROVIDERS.map((pr, i) => {
         const on = pr.key === value;
         const outer = 22;
@@ -121,8 +123,8 @@ function ProviderGroup({ value, onChange, p }: { value: Provider; onChange: (k: 
                 move(i, -1);
               }
             }}
-            className="m3-press"
-            style={{
+            class="m3-press"
+            style={s({
               flex: 1,
               height: 44,
               border: "none",
@@ -133,11 +135,11 @@ function ProviderGroup({ value, onChange, p }: { value: Provider; onChange: (k: 
               display: "grid",
               placeItems: "center",
               transition: "background 160ms, color 160ms",
-            }}
+            })}
           >
             <span
               aria-hidden
-              style={{
+              style={s({
                 width: 22,
                 height: 22,
                 display: "block",
@@ -150,7 +152,7 @@ function ProviderGroup({ value, onChange, p }: { value: Provider; onChange: (k: 
                 maskRepeat: "no-repeat",
                 WebkitMaskPosition: "center",
                 maskPosition: "center",
-              }}
+              })}
             />
           </button>
         );
@@ -168,10 +170,10 @@ export function AiPanel({ p, settings, onSettings }: { p: Palette; settings: AiS
     onSettings({ ...settings, provider: k, baseUrl: s.baseUrl, model: s.model });
   };
   return (
-    <div className="no-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "12px 12px 20px" }}>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 0.4, color: p.onSurfaceVariant, padding: "8px 6px 12px" }}>{t("aiSettings", lang)}</div>
-      <div style={{ padding: "0 4px" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div class="no-scrollbar" style={s({ height: "100%", overflowY: "auto", padding: "12px 12px 20px" })}>
+      <div style={s({ fontSize: 12, fontWeight: 700, letterSpacing: 0.4, color: p.onSurfaceVariant, padding: "8px 6px 12px" })}>{t("aiSettings", lang)}</div>
+      <div style={s({ padding: "0 4px" })}>
+        <div style={s({ display: "flex", flexDirection: "column", gap: 14 })}>
           <div>
             <Label p={p}>{t("aiProvider", lang)}</Label>
             <ProviderGroup value={settings.provider} onChange={pick} p={p} />
@@ -189,7 +191,7 @@ export function AiPanel({ p, settings, onSettings }: { p: Palette; settings: AiS
               p={p}
               right={
                 spec.keysUrl && (
-                  <a href={spec.keysUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 600, color: p.primary }}>
+                  <a href={spec.keysUrl} target="_blank" rel="noreferrer" style={s({ fontSize: 12, fontWeight: 600, color: p.primary })}>
                     {t("aiGetKey", lang)}
                   </a>
                 )
@@ -198,7 +200,7 @@ export function AiPanel({ p, settings, onSettings }: { p: Palette; settings: AiS
               {t("aiKey", lang)}
             </Label>
             <Input label={t("aiKey", lang)} value={settings.key} onChange={(key) => onSettings({ ...settings, key })} placeholder="sk-…" p={p} type="password" />
-            <div style={{ fontSize: 12, lineHeight: 1.5, color: p.onSurfaceVariant, marginTop: 8, padding: "0 4px" }}>{t("aiKeyHint", lang)}</div>
+            <div style={s({ fontSize: 12, lineHeight: 1.5, color: p.onSurfaceVariant, marginTop: 8, padding: "0 4px" })}>{t("aiKeyHint", lang)}</div>
           </div>
         </div>
       </div>

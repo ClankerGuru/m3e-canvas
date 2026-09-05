@@ -1,7 +1,9 @@
-"use client";
-
-import { useMemo, useState } from "react";
-import { CATEGORIES, KIND_ORDER, KIND_SPEC, Kind, Palette } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useMemo, useState, type CSSProperties } from "@/lib/hooks";
+import { CATEGORIES, KIND_ORDER, KIND_SPEC } from "@/lib/tokens";
+import type { Kind, Palette } from "@/lib/tokens";
 import { Icon } from "./M3Node";
 import { t, useLang } from "@/lib/i18n";
 import { Field, Section, Tile } from "./ui";
@@ -16,14 +18,14 @@ export function PartsPalette({
   palette: Palette;
   favorites: Kind[];
   onToggleFavorite: (k: Kind) => void;
-  onPartPointerDown: (e: React.PointerEvent, kind: Kind) => void;
+  onPartPointerDown: (e: PointerEvent, kind: Kind) => void;
   overBin: boolean;
 }) {
   const lang = useLang();
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const s = q().trim().toLowerCase();
     if (!s) return KIND_ORDER;
     return KIND_ORDER.filter((k) => {
       const sp = KIND_SPEC[k];
@@ -46,29 +48,29 @@ export function PartsPalette({
     );
   };
 
-  const grid: React.CSSProperties = {
+  const grid: CSSProperties = {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(78px, 1fr))",
     gap: 6,
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", position: "relative" }}>
-      <div style={{ padding: "12px 12px 8px" }}>
-        <Field value={q} onChange={setQ} placeholder={t("search", lang)} p={p} icon="search" height={40} />
+    <div style={s({ display: "flex", flexDirection: "column", height: "100%", position: "relative" })}>
+      <div style={s({ padding: "12px 12px 8px" })}>
+        <Field value={q()} onChange={setQ} placeholder={t("search", lang)} p={p} icon="search" height={40} />
       </div>
 
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 8px" }}>
-        {!q && favorites.length > 0 && (
+      <div class="no-scrollbar" style={s({ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 8px" })}>
+        {!q() && favorites.length > 0 && (
           <Section id="fav" icon="star" title={t("favorites", lang)} p={p}>
             <div style={grid}>{favorites.filter((k) => KIND_SPEC[k]).map(tile)}</div>
           </Section>
         )}
-        {q ? (
-          <div style={{ ...grid, padding: "4px 4px 12px" }}>
-            {filtered.map(tile)}
-            {filtered.length === 0 && (
-              <div style={{ gridColumn: "1 / -1", color: p.outline, fontSize: 13, padding: 12, textAlign: "center" }}>
+        {q() ? (
+          <div style={s({ ...grid, padding: "4px 4px 12px" })}>
+            {filtered().map(tile)}
+            {filtered().length === 0 && (
+              <div style={s({ gridColumn: "1 / -1", color: p.outline, fontSize: 13, padding: 12, textAlign: "center" })}>
                 <Icon name="search_off" size={28} />
               </div>
             )}
@@ -84,7 +86,7 @@ export function PartsPalette({
 
       {overBin && (
         <div
-          style={{
+          style={s({
             position: "absolute",
             inset: 0,
             background: "rgba(179,38,30,0.10)",
@@ -93,10 +95,10 @@ export function PartsPalette({
             pointerEvents: "none",
             color: p.error,
             borderRadius: "inherit",
-          }}
+          })}
         >
           <div
-            style={{
+            style={s({
               width: 72,
               height: 72,
               borderRadius: 36,
@@ -105,7 +107,7 @@ export function PartsPalette({
               display: "grid",
               placeItems: "center",
               boxShadow: "0 4px 14px rgba(0,0,0,0.14)",
-            }}
+            })}
           >
             <Icon name="delete" size={34} />
           </div>

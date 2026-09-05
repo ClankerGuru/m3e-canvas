@@ -1,4 +1,5 @@
-import { Doc, KIND_ORDER, Kind, VARIANTS, isPlatform } from "./tokens";
+import { KIND_ORDER, VARIANTS, isPlatform } from "./tokens";
+import type { Doc, Kind } from "./tokens";
 
 /* A project file is the Doc as JSON, nothing more. Reading one back only checks
  * the shape the editor relies on; the same migrations that run on a saved

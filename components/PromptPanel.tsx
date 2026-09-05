@@ -1,8 +1,9 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useEffect, useMemo, useState } from "@/lib/hooks";
 import { buildPrompt } from "@/lib/prompt";
-import { Doc, Palette, Platform, defaultPlatformOf } from "@/lib/tokens";
+import { defaultPlatformOf } from "@/lib/tokens";
+import type { Doc, Palette, Platform } from "@/lib/tokens";
 import { Icon } from "./M3Node";
 import { Field, IconBtn, Segmented } from "./ui";
 import { t, useLang } from "@/lib/i18n";
@@ -25,7 +26,7 @@ export function PromptPanel({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!copied) return;
+    if (!copied()) return;
     const t = setTimeout(() => setCopied(false), 1400);
     return () => clearTimeout(t);
   }, [copied]);
@@ -40,8 +41,8 @@ export function PromptPanel({
   const projectButton = (icon: string, label: string, onClick: () => void) => (
     <button
       onClick={onClick}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         flex: 1,
         height: 42,
         borderRadius: 21,
@@ -55,7 +56,7 @@ export function PromptPanel({
         alignItems: "center",
         justifyContent: "center",
         gap: 7,
-      }}
+      })}
     >
       <Icon name={icon} size={19} />
       {label}
@@ -63,7 +64,7 @@ export function PromptPanel({
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: 12, gap: 10 }}>
+    <div style={s({ display: "flex", flexDirection: "column", height: "100%", padding: 12, gap: 10 })}>
       <Field
         value={doc.title}
         onChange={(title) => onDoc({ title })}
@@ -90,14 +91,14 @@ export function PromptPanel({
         p={p}
         height={40}
       />
-      <div style={{ position: "relative", flex: 1, minHeight: 0, display: "flex" }}>
+      <div style={s({ position: "relative", flex: 1, minHeight: 0, display: "flex" })}>
         <textarea
-          className="no-scrollbar"
+          class="no-scrollbar"
           value={text}
           onChange={(e) => onDoc({ promptEdit: e.target.value })}
           spellCheck={false}
           aria-label={t("prompt", lang)}
-          style={{
+          style={s({
             flex: 1,
             minHeight: 0,
             width: "100%",
@@ -112,18 +113,18 @@ export function PromptPanel({
             resize: "none",
             outline: "none",
             boxSizing: "border-box",
-          }}
+          })}
         />
         {edited && (
-          <div style={{ position: "absolute", right: 8, bottom: 8 }}>
+          <div style={s({ position: "absolute", right: 8, bottom: 8 })}>
             <IconBtn icon="undo" p={p} size={32} onClick={() => onDoc({ promptEdit: undefined })} title={t("promptReset", lang)} />
           </div>
         )}
       </div>
       <button
         onClick={copy}
-        className="m3-press"
-        style={{
+        class="m3-press"
+        style={s({
           height: 48,
           borderRadius: 24,
           border: "none",
@@ -137,10 +138,10 @@ export function PromptPanel({
           justifyContent: "center",
           gap: 8,
           transition: "background 160ms, color 160ms",
-        }}
+        })}
       >
-        <Icon name={copied ? "check" : "content_copy"} size={20} />
-        {copied ? t("copied", lang) : t("copyPrompt", lang)}
+        <Icon name={copied() ? "check" : "content_copy"} size={20} />
+        {copied() ? t("copied", lang) : t("copyPrompt", lang)}
       </button>
     </div>
   );

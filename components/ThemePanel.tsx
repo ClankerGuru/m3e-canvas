@@ -1,10 +1,14 @@
-"use client";
-
-import { useState } from "react";
-import { motion } from "motion/react";
-import { FONTS, Palette, SHAPES, ShapeScale, Theme } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import type { JSX } from "solid-js";
+import { useState } from "@/lib/hooks";
+import { motion } from "@/lib/motion";
+import { FONTS, SHAPES } from "@/lib/tokens";
+import type { ShapeScale } from "@/lib/tokens";
+import type { Palette, Theme } from "@/lib/tokens";
 import { ensureFontLoaded } from "@/lib/theme";
-import { Lang, t, useLang } from "@/lib/i18n";
+import { t, useLang } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 import { Icon } from "./M3Node";
 import { Toggle } from "./ui";
 
@@ -13,8 +17,8 @@ const shapeLabel = (k: ShapeScale, lang: Lang) => (k === "square" ? t("shapeSqua
 /** the corner radius a 28dp default becomes under each scale, for the option art */
 const previewR = (k: ShapeScale) => (k === "square" ? 6 : k === "full" ? 28 : 16);
 
-function Hint({ p, children }: { p: Palette; children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, lineHeight: 1.5, color: p.onSurfaceVariant, padding: "0 4px" }}>{children}</div>;
+function Hint({ p, children }: { p: Palette; children: JSX.Element }) {
+  return <div style={s({ fontSize: 11, lineHeight: 1.5, color: p.onSurfaceVariant, padding: "0 4px" })}>{children}</div>;
 }
 
 function OptionCard({
@@ -28,14 +32,14 @@ function OptionCard({
   onClick: () => void;
   p: Palette;
   label: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 }) {
   return (
     <button
       onClick={onClick}
       aria-pressed={on}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         flex: 1,
         minWidth: 0,
         display: "flex",
@@ -50,10 +54,10 @@ function OptionCard({
         cursor: "pointer",
         outline: on ? `2px solid ${p.primary}` : "2px solid transparent",
         outlineOffset: 1,
-      }}
+      })}
     >
       {children}
-      <span style={{ fontSize: 12, fontWeight: 600, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      <span style={s({ fontSize: 12, fontWeight: 600, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{label}</span>
     </button>
   );
 }
@@ -62,9 +66,9 @@ function OptionCard({
 export function ShapePanel({ p, theme, onChange }: { p: Palette; theme: Theme; onChange: (patch: Partial<Theme>) => void }) {
   const lang = useLang();
   return (
-    <div className="no-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" }}>{t("shapeScale", lang)}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div class="no-scrollbar" style={s({ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 })}>
+      <div style={s({ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" })}>{t("shapeScale", lang)}</div>
+      <div style={s({ display: "flex", flexDirection: "column", gap: 6 })}>
         {SHAPES.map((sh) => {
           const r = previewR(sh.key);
           const on = theme.shape === sh.key;
@@ -73,8 +77,8 @@ export function ShapePanel({ p, theme, onChange }: { p: Palette; theme: Theme; o
               key={sh.key}
               onClick={() => onChange({ shape: sh.key })}
               aria-pressed={on}
-              className="m3-press"
-              style={{
+              class="m3-press"
+              style={s({
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "flex-start",
@@ -86,16 +90,16 @@ export function ShapePanel({ p, theme, onChange }: { p: Palette; theme: Theme; o
                 color: on ? p.onSecondaryContainer : p.onSurface,
                 cursor: "pointer",
                 textAlign: "left",
-              }}
+              })}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: 8, width: "100%" }}>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shapeLabel(sh.key, lang)}</span>
+              <span style={s({ display: "flex", alignItems: "center", gap: 8, width: "100%" })}>
+                <span style={s({ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{shapeLabel(sh.key, lang)}</span>
                 {on && <Icon name="check" size={20} />}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 64, height: 26, borderRadius: r, background: p.primary }} />
-                <span style={{ width: 26, height: 26, borderRadius: Math.round(r * 0.6), background: p.primaryContainer }} />
-                <span style={{ width: 40, height: 26, borderRadius: Math.round(r * 0.7), background: p.surfaceContainerHighest, border: `1px solid ${p.outlineVariant}`, boxSizing: "border-box" }} />
+              <span style={s({ display: "flex", alignItems: "center", gap: 8 })}>
+                <span style={s({ width: 64, height: 26, borderRadius: r, background: p.primary })} />
+                <span style={s({ width: 26, height: 26, borderRadius: Math.round(r * 0.6), background: p.primaryContainer })} />
+                <span style={s({ width: 40, height: 26, borderRadius: Math.round(r * 0.7), background: p.surfaceContainerHighest, border: `1px solid ${p.outlineVariant}`, boxSizing: "border-box" })} />
               </span>
             </button>
           );
@@ -110,9 +114,9 @@ export function ShapePanel({ p, theme, onChange }: { p: Palette; theme: Theme; o
 export function TypePanel({ p, theme, onChange }: { p: Palette; theme: Theme; onChange: (patch: Partial<Theme>) => void }) {
   const lang = useLang();
   return (
-    <div className="no-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" }}>{t("fontFamily", lang)}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div class="no-scrollbar" style={s({ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 })}>
+      <div style={s({ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" })}>{t("fontFamily", lang)}</div>
+      <div style={s({ display: "flex", flexDirection: "column", gap: 6 })}>
         {FONTS.map((f) => {
           const on = theme.font === f.key;
           ensureFontLoaded(f.key);
@@ -121,8 +125,8 @@ export function TypePanel({ p, theme, onChange }: { p: Palette; theme: Theme; on
               key={f.key}
               onClick={() => onChange({ font: f.key })}
               aria-pressed={on}
-              className="m3-press"
-              style={{
+              class="m3-press"
+              style={s({
                 display: "flex",
                 alignItems: "center",
                 gap: 12,
@@ -135,17 +139,17 @@ export function TypePanel({ p, theme, onChange }: { p: Palette; theme: Theme; on
                 cursor: "pointer",
                 textAlign: "left",
                 fontFamily: f.family,
-              }}
+              })}
             >
-              <span style={{ fontSize: 24, fontWeight: 600, width: 36, flex: "0 0 auto" }}>Aa</span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.label}</span>
+              <span style={s({ fontSize: 24, fontWeight: 600, width: 36, flex: "0 0 auto" })}>Aa</span>
+              <span style={s({ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{f.label}</span>
               {on && <Icon name="check" size={20} />}
             </button>
           );
         })}
       </div>
 
-      <div style={{ padding: 12, borderRadius: 16, background: p.surfaceContainerLow, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={s({ padding: 12, borderRadius: 16, background: p.surfaceContainerLow, display: "flex", flexDirection: "column", gap: 8 })}>
         <Toggle on={theme.emphasized} onChange={(emphasized) => onChange({ emphasized })} p={p} icon="format_bold" label={t("emphasized", lang)} grow />
         <Hint p={p}>{t("emphasizedHint", lang)}</Hint>
       </div>
@@ -162,9 +166,9 @@ export function MotionPanel({ p, theme, onChange }: { p: Palette; theme: Theme; 
     ? { type: "spring" as const, stiffness: 380, damping: 18, mass: 1 }
     : { duration: 0.35, ease: [0.2, 0, 0, 1] as const };
   return (
-    <div className="no-scrollbar" style={{ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" }}>{t("motionScheme", lang)}</div>
-      <div style={{ display: "flex", gap: 6 }}>
+    <div class="no-scrollbar" style={s({ height: "100%", overflowY: "auto", padding: "12px 12px 20px", display: "flex", flexDirection: "column", gap: 12 })}>
+      <div style={s({ fontSize: 12, fontWeight: 700, color: p.onSurfaceVariant, padding: "0 4px" })}>{t("motionScheme", lang)}</div>
+      <div style={s({ display: "flex", gap: 6 })}>
         <OptionCard on={!expressive} onClick={() => { onChange({ motion: "standard" }); setTick((n) => n + 1); }} p={p} label={t("motionStandard", lang)}>
           <svg width="64" height="36" viewBox="0 0 64 36" aria-hidden>
             <path d="M4 32 C 24 32, 30 4, 60 4" fill="none" stroke={p.primary} strokeWidth="3" strokeLinecap="round" />
@@ -180,10 +184,10 @@ export function MotionPanel({ p, theme, onChange }: { p: Palette; theme: Theme; 
 
       <button
         onClick={() => setTick((n) => n + 1)}
-        className="m3-press"
+        class="m3-press"
         title={t("tryIt", lang)}
         aria-label={t("tryIt", lang)}
-        style={{
+        style={s({
           position: "relative",
           height: 96,
           borderRadius: 16,
@@ -194,14 +198,14 @@ export function MotionPanel({ p, theme, onChange }: { p: Palette; theme: Theme; 
           padding: 0,
           display: "grid",
           placeItems: "center",
-        }}
+        })}
       >
         <motion.span
-          key={`${theme.motion}:${tick}`}
+          key={`${theme.motion}:${tick()}`}
           initial={{ x: -110, scale: 0.8, rotate: -20 }}
           animate={{ x: 0, scale: 1, rotate: 0 }}
           transition={transition}
-          style={{
+          style={s({
             width: 48,
             height: 48,
             borderRadius: expressive ? 14 : 24,
@@ -209,7 +213,7 @@ export function MotionPanel({ p, theme, onChange }: { p: Palette; theme: Theme; 
             display: "grid",
             placeItems: "center",
             color: p.onPrimary,
-          }}
+          })}
         >
           <Icon name="arrow_forward" size={24} />
         </motion.span>

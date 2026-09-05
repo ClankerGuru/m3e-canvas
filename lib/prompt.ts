@@ -1,29 +1,7 @@
-import { KIND_TEXT, Lang, SWIPE_TEXT, TRANSITION_TEXT, getLang } from "./i18n";
-import {
-  Platform,
-  Action,
-  BACK_TARGET,
-  Doc,
-  FONTS,
-  Frame,
-  Group,
-  Item,
-  Kind,
-  Palette,
-  PHONE_W,
-  SWIPE_DIRS,
-  Theme,
-  Variant,
-  defaultPlatformOf,
-  explodeGroup,
-  frameOfGroup,
-  frameRect,
-  frameSizeOf,
-  groupBounds,
-  isPhoneFrame,
-  normalizeTheme,
-  paletteOf,
-} from "./tokens";
+import { KIND_TEXT, SWIPE_TEXT, TRANSITION_TEXT, getLang } from "./i18n";
+import type { Lang } from "./i18n";
+import { BACK_TARGET, FONTS, PHONE_W, SWIPE_DIRS, defaultPlatformOf, explodeGroup, frameOfGroup, frameRect, frameSizeOf, groupBounds, isPhoneFrame, normalizeTheme, paletteOf } from "./tokens";
+import type { Platform, Action, Doc, Frame, Group, Item, Kind, Palette, Theme, Variant } from "./tokens";
 
 const VARIANT_TEXT: Record<Lang, Record<Variant, string>> = {
   ja: { filled: "塗りつぶし", tonal: "トーナル", elevated: "エレベーテッド", outlined: "アウトライン", text: "テキスト" },

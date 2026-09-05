@@ -1,5 +1,6 @@
 import { cp, mkdir } from "node:fs/promises";
 import tailwind from "bun-plugin-tailwind";
+import { SolidPlugin } from "@dschz/bun-plugin-solid";
 
 const base = process.env.PUBLIC_BASE_PATH ?? "";
 
@@ -8,7 +9,10 @@ const result = await Bun.build({
   outdir: "./dist",
   minify: true,
   target: "browser",
-  plugins: [tailwind],
+  plugins: [
+    tailwind,
+    SolidPlugin({ generate: "dom", hydratable: false, sourceMaps: false }),
+  ],
   define: {
     "process.env.PUBLIC_BASE_PATH": JSON.stringify(base),
   },

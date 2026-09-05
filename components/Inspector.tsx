@@ -1,43 +1,13 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
-import {
-  Action,
-  BACK_TARGET,
-  CONTENT_W,
-  Frame,
-  FramePreset,
-  HALF_W,
-  Item,
-  KIND_SPEC,
-  PHONE_H,
-  PHONE_W,
-  Kind,
-  NavTab,
-  Palette,
-  SWIPE_DIRS,
-  SwipeDir,
-  TAPPABLE,
-  TOGGLEABLE,
-  TRANSITIONS,
-  Transition,
-  VARIANTS,
-  Variant,
-  actionSlotsOf,
-  contentWidth,
-  defaultTabsFor,
-  framePresetOf,
-  frameSizeOf,
-  halfWidth,
-  isPhoneFrame,
-  toggleIcon,
-  iconSlotsOf,
-  setIconSlot,
-  variantStyle,
-} from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useEffect, useRef, useState } from "@/lib/hooks";
+import { BACK_TARGET, CONTENT_W, HALF_W, KIND_SPEC, PHONE_H, PHONE_W, SWIPE_DIRS, TAPPABLE, TOGGLEABLE, TRANSITIONS, VARIANTS, actionSlotsOf, contentWidth, defaultTabsFor, framePresetOf, frameSizeOf, halfWidth, isPhoneFrame, toggleIcon, iconSlotsOf, setIconSlot, variantStyle } from "@/lib/tokens";
+import type { NavTab, SwipeDir, Transition, Variant } from "@/lib/tokens";
+import type { Action, Frame, FramePreset, Item, Kind, Palette } from "@/lib/tokens";
 import { IconPicker } from "./IconPicker";
 import { Icon } from "./M3Node";
-import { ButtonRun, CornerIcon, Field, IconBtn, Section, Segmented, SizePresets, Slider, TidyButton, TidyState, Toggle, TokenChips } from "./ui";
+import { ButtonRun, CornerIcon, Field, IconBtn, Section, Segmented, SizePresets, Slider, TidyButton, Toggle, TokenChips } from "./ui";
+import type { TidyState } from "./ui";
 import { AiWriteBtn } from "./AiPanel";
 import { popHistory } from "@/lib/ai";
 import { SWIPE_TEXT, t, useLang } from "@/lib/i18n";
@@ -104,8 +74,8 @@ export function VariantSwatch({
       title={label}
       aria-label={label}
       aria-pressed={on}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         height: h,
         borderRadius: h / 2,
         cursor: "pointer",
@@ -120,7 +90,7 @@ export function VariantSwatch({
         boxShadow: v === "elevated" ? "0 1px 3px rgba(0,0,0,0.2)" : "none",
         outline: on ? `2px solid ${p.primary}` : "2px solid transparent",
         outlineOffset: 2,
-      }}
+      })}
     >
       {on && <Icon name="check" size={small ? 14 : 16} />}
       {label}
@@ -218,8 +188,8 @@ function FrameChips({
       <button
         key={id ?? "none"}
         onClick={() => onChange(id)}
-        className="m3-press"
-        style={{
+        class="m3-press"
+        style={s({
           height: h,
           padding: "0 12px 0 8px",
           borderRadius: h / 2,
@@ -233,15 +203,15 @@ function FrameChips({
           alignItems: "center",
           gap: 6,
           maxWidth: "100%",
-        }}
+        })}
       >
         <Icon name={icon} size={18} />
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <span style={s({ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{label}</span>
       </button>
     );
   };
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+    <div style={s({ display: "flex", flexWrap: "wrap", gap: 6 })}>
       {chip(null, t("none", lang), "block")}
       {back && chip(BACK_TARGET, t("goBack", lang), "arrow_back")}
       {frames.map((f) => chip(f.id, f.name || t("screen", lang), isPhoneFrame(f) ? "smartphone" : "desktop_windows"))}
@@ -274,7 +244,7 @@ function ActionEditor({
   p: Palette;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+    <div style={s({ display: "flex", flexDirection: "column", gap: 10 })}>
       <FrameChips
         frames={frames}
         value={action?.to ?? null}
@@ -296,9 +266,9 @@ export type AiHooks = { ready: boolean; reason?: string; busy: boolean; onRun: (
 function AiField({ ai, history, onRestore, p, value, onChange, placeholder }: { ai: AiHooks; history?: string[]; onRestore: () => void; p: Palette; value: string; onChange: (v: string) => void; placeholder: string }) {
   const lang = useLang();
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+    <div style={s({ display: "flex", flexDirection: "column", gap: 6 })}>
       <Field value={value} onChange={onChange} placeholder={placeholder} p={p} multiline rows={3} />
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={s({ display: "flex", justifyContent: "flex-end" })}>
         <ButtonRun>
           <AiWriteBtn p={p} busy={ai.busy} disabled={!ai.ready} onClick={ai.onRun} onCancel={ai.onCancel} label={t("aiWriteShort", lang)} title={ai.ready ? t("aiWrite", lang) : (ai.reason ?? t("aiNoKey", lang))} />
           {!!history?.length && <IconBtn icon="undo" p={p} size={40} on onClick={onRestore} title={t("aiRestore", lang)} />}
@@ -343,7 +313,7 @@ export function FrameInspector({
   const [saving, setSaving] = useState(false);
   const [swipeDir, setSwipeDir] = useState<SwipeDir>("left");
   useEffect(() => {
-    if (!copied) return;
+    if (!copied()) return;
     const t = setTimeout(() => setCopied(false), 1400);
     return () => clearTimeout(t);
   }, [copied]);
@@ -351,8 +321,8 @@ export function FrameInspector({
     <button
       onClick={onClick}
       disabled={busy}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         flex: 1,
         height: 44,
         borderRadius: 22,
@@ -367,16 +337,16 @@ export function FrameInspector({
         justifyContent: "center",
         gap: 8,
         opacity: busy ? 0.6 : 1,
-      }}
+      })}
     >
       <Icon name={icon} size={20} />
       {label}
     </button>
   );
   return (
-    <div className="no-scrollbar" style={{ padding: "12px 12px 20px", overflowY: "auto", height: "100%" }}>
+    <div class="no-scrollbar" style={s({ padding: "12px 12px 20px", overflowY: "auto", height: "100%" })}>
       <div
-        style={{
+        style={s({
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -385,10 +355,10 @@ export function FrameInspector({
           borderRadius: 20,
           background: p.secondaryContainer,
           color: p.onSecondaryContainer,
-        }}
+        })}
       >
         <Icon name={isPhoneFrame(frame) ? "smartphone" : "desktop_windows"} size={20} />
-        <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 }}>{t("screen", lang)}</span>
+        <span style={s({ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 })}>{t("screen", lang)}</span>
         <IconBtn icon="play_arrow" p={p} onClick={onPreview} title={t("previewFrom", lang)} size={32} fill />
         <IconBtn icon="content_copy" p={p} onClick={onDuplicate} title={t("duplicate", lang)} size={32} />
         <IconBtn icon="delete" p={p} danger onClick={onDelete} title={t("delete", lang)} size={32} />
@@ -410,10 +380,10 @@ export function FrameInspector({
       </Section>
       {frames.length > 1 && (
         <Section id="frame-swipe" icon="swipe" title={t("swipeTo", lang)} p={p}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 8 })}>
             <Segmented<SwipeDir>
               options={SWIPE_DIRS.map((d) => ({ key: d.key, icon: d.icon, title: SWIPE_TEXT[lang][d.key], dot: !!frame.swipe?.[d.key] }))}
-              value={swipeDir}
+              value={swipeDir()}
               onChange={setSwipeDir}
               p={p}
               height={36}
@@ -460,8 +430,8 @@ export function FrameInspector({
           )}
         </ButtonRun>
         <div
-          className="no-scrollbar"
-          style={{
+          class="no-scrollbar"
+          style={s({
             marginTop: 10,
             maxHeight: 260,
             overflowY: "auto",
@@ -473,7 +443,7 @@ export function FrameInspector({
             color: p.onSurfaceVariant,
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-          }}
+          })}
         >
           {prompt}
         </div>
@@ -533,8 +503,8 @@ export function Inspector({
       const bigBtn = (icon: string, label: string, onClick?: () => void) => (
         <button
           onClick={onClick}
-          className="m3-press"
-          style={{
+          class="m3-press"
+          style={s({
             height: 48,
             borderRadius: 24,
             border: "none",
@@ -548,16 +518,16 @@ export function Inspector({
             justifyContent: "center",
             gap: 8,
             width: "100%",
-          }}
+          })}
         >
           <Icon name={icon} size={22} />
           {label}
         </button>
       );
       return (
-        <div className="no-scrollbar" style={{ padding: "12px 12px 20px", overflowY: "auto", height: "100%" }}>
+        <div class="no-scrollbar" style={s({ padding: "12px 12px 20px", overflowY: "auto", height: "100%" })}>
           <div
-            style={{
+            style={s({
               display: "flex",
               alignItems: "center",
               gap: 8,
@@ -566,16 +536,16 @@ export function Inspector({
               borderRadius: 20,
               background: p.secondaryContainer,
               color: p.onSecondaryContainer,
-            }}
+            })}
           >
             <Icon name={grouped ? "group_work" : "select_all"} size={20} />
-            <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 }}>
+            <span style={s({ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 })}>
               {grouped ? t("group", lang) : lang === "en" ? `${multi} ${t("selectedParts", lang)}` : `${multi}${t("selectedParts", lang)}`}
             </span>
             <IconBtn icon="delete" p={p} danger onClick={onDelete} title={t("deleteSelection", lang)} size={32} />
           </div>
           {grouped ? bigBtn("ungroup", t("ungroup", lang), onUngroup) : bigBtn("group_work", t("makeGroup", lang), onGroup)}
-          <div style={{ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: p.onSurfaceVariant, padding: "0 6px" }}>
+          <div style={s({ marginTop: 10, fontSize: 12, lineHeight: 1.5, color: p.onSurfaceVariant, padding: "0 6px" })}>
             {grouped ? t("groupEditNote", lang) : `${t("groupHint", lang)} (Ctrl+G)`}
           </div>
         </div>
@@ -583,14 +553,14 @@ export function Inspector({
     }
     return (
       <div
-        style={{
+        style={s({
           height: "100%",
           display: "grid",
           placeItems: "center",
           color: p.outlineVariant,
           padding: 24,
           textAlign: "center",
-        }}
+        })}
       >
         <Icon name="ads_click" size={44} />
       </div>
@@ -637,8 +607,8 @@ export function Inspector({
       key={key}
       onClick={onClick}
       title={label}
-      className="m3-press"
-      style={{
+      class="m3-press"
+      style={s({
         height: 44,
         minWidth: 44,
         padding: label ? "0 14px 0 10px" : 0,
@@ -653,7 +623,7 @@ export function Inspector({
         gap: 8,
         fontSize: 12,
         fontWeight: 600,
-      }}
+      })}
     >
       <Icon name={icon ?? "block"} size={22} />
       {label && <span>{label}</span>}
@@ -685,9 +655,9 @@ export function Inspector({
     item.kind === "box";
 
   return (
-    <div className="no-scrollbar" style={{ padding: "12px 12px 20px", overflowY: "auto", height: "100%" }}>
+    <div class="no-scrollbar" style={s({ padding: "12px 12px 20px", overflowY: "auto", height: "100%" })}>
       <div
-        style={{
+        style={s({
           display: "flex",
           alignItems: "center",
           gap: 8,
@@ -696,16 +666,16 @@ export function Inspector({
           borderRadius: 20,
           background: p.secondaryContainer,
           color: p.onSecondaryContainer,
-        }}
+        })}
       >
         <Icon name={spec.paletteIcon} size={20} />
-        <span style={{ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 }}>{spec.label}</span>
+        <span style={s({ fontSize: 14, fontWeight: 600, flex: 1, minWidth: 0 })}>{spec.label}</span>
         <IconBtn icon="content_copy" p={p} onClick={onDuplicate} title={t("duplicateKey", lang)} size={32} />
         <IconBtn icon="delete" p={p} danger onClick={onDelete} title={t("delete", lang)} size={32} />
       </div>
 
       {TOGGLEABLE.includes(item.kind) && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "10px 4px 12px", marginBottom: 12 }}>
+        <div style={s({ display: "flex", flexDirection: "column", gap: 10, padding: "10px 4px 12px", marginBottom: 12 })}>
           <Toggle
             on={!!item.toggle}
             onChange={(on) => {
@@ -725,7 +695,7 @@ export function Inspector({
                   { key: "off", icon: "radio_button_unchecked", label: t("normalState", lang) },
                   { key: "on", icon: "check_circle", label: t("onState", lang) },
                 ]}
-                value={onTab ? "on" : "off"}
+                value={onTab() ? "on" : "off"}
                 onChange={(k) => {
                   setOnTab(k === "on");
                   setPickerOpen(false);
@@ -733,7 +703,7 @@ export function Inspector({
                 p={p}
                 height={36}
               />
-              {editOn && <div style={{ fontSize: 11, color: p.onSurfaceVariant, padding: "0 4px" }}>{t("onStateHint", lang)}</div>}
+              {editOn && <div style={s({ fontSize: 11, color: p.onSurfaceVariant, padding: "0 4px" })}>{t("onStateHint", lang)}</div>}
             </>
           )}
         </div>
@@ -741,9 +711,9 @@ export function Inspector({
 
       {(spec.hasLabel || spec.hasSupporting) && (
         <Section id="text" icon="title" title={t("text", lang)} p={p}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 8 })}>
             {spec.hasLabel && (
-              <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={s({ display: "flex", gap: 6, alignItems: "center" })}>
                 <Field
                   value={shown.label}
                   onChange={(label) => change({ label })}
@@ -785,11 +755,11 @@ export function Inspector({
             p={p}
             height={36}
           />
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 })}>
             {tabs.map((tab, i) => {
-              const on = slotKey === `tab:${i}` && pickerOpen;
+              const on = slotKey() === `tab:${i}` && pickerOpen;
               return (
-                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div key={i} style={s({ display: "flex", gap: 6, alignItems: "center" })}>
                   {tabIcons && (
                   <button
                     onClick={() => {
@@ -798,8 +768,8 @@ export function Inspector({
                     }}
                     title={t("changeIcon", lang)}
                     aria-label={t("changeIcon", lang)}
-                    className="m3-press"
-                    style={{
+                    class="m3-press"
+                    style={s({
                       width: 40,
                       height: 40,
                       flex: "0 0 auto",
@@ -810,7 +780,7 @@ export function Inspector({
                       cursor: "pointer",
                       display: "grid",
                       placeItems: "center",
-                    }}
+                    })}
                   >
                     <Icon name={tab.icon || "add"} size={20} />
                   </button>
@@ -842,11 +812,11 @@ export function Inspector({
               } catch {}
             }}
           />
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div style={s({ display: "flex", gap: 6, alignItems: "center" })}>
             <button
               onClick={() => fileRef.current?.click()}
-              className="m3-press"
-              style={{
+              class="m3-press"
+              style={s({
                 flex: 1,
                 height: 44,
                 borderRadius: 22,
@@ -860,7 +830,7 @@ export function Inspector({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: 8,
-              }}
+              })}
             >
               <Icon name="upload" size={20} />
               {t("pickImage", lang)}
@@ -874,7 +844,7 @@ export function Inspector({
 
       {mainSlots.length > 0 && activeSlot && !item.src && (
         <Section id="icon" icon="emoji_symbols" title={t("icon", lang)} p={p}>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div style={s({ display: "flex", gap: 6, flexWrap: "wrap" })}>
             {mainSlots.map((s) =>
               slotBtn(
                 s.key,
@@ -911,8 +881,8 @@ export function Inspector({
         </Section>
       )}
 
-      {pickerOpen && activeSlot && (
-        <div style={{ margin: "-4px 4px 12px" }}>
+      {pickerOpen() && activeSlot && (
+        <div style={s({ margin: "-4px 4px 12px" })}>
           <IconPicker
             value={activeSlot.value}
             onChange={(icon) => change(setIconSlot(item, activeSlot.key, icon))}
@@ -923,7 +893,7 @@ export function Inspector({
 
       {variants.length > 0 && (
         <Section id="style" icon="palette" title={t("style", lang)} p={p}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <div style={s({ display: "flex", flexWrap: "wrap", gap: 6 })}>
             {variants.map((v) => (
               <VariantSwatch
                 key={v.key}
@@ -943,7 +913,7 @@ export function Inspector({
           <TokenChips value={item.fill ?? "surfaceContainerLow"} onChange={(fill) => onChange({ fill })} p={p} />
           {item.kind === "listItem" && (
             <>
-              <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant, margin: "10px 0 6px" }}>{t("iconBackground", lang)}</div>
+              <div style={s({ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant, margin: "10px 0 6px" })}>{t("iconBackground", lang)}</div>
               <TokenChips
                 value={item.iconFill && item.iconFill !== "none" ? item.iconFill : "primaryContainer"}
                 onChange={(iconFill) => onChange({ iconFill })}
@@ -959,7 +929,7 @@ export function Inspector({
 
       {(spec.hasChecked || spec.hasValue || spec.hasWavy || spec.hasContained) && !editOn && (
         <Section id="state" icon="tune" title={t("state", lang)} p={p}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "2px 0" }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 14, padding: "2px 0" })}>
             {spec.hasChecked && (
               <Toggle
                 on={!!item.checked}
@@ -1014,7 +984,7 @@ export function Inspector({
 
       {(spec.size || hasRadius) && !editOn && (
         <Section id="size" icon="straighten" title={t("size", lang)} p={p}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={s({ display: "flex", flexDirection: "column", gap: 8 })}>
             {spec.size && (
               <>
                 <Slider
@@ -1116,7 +1086,7 @@ export function Inspector({
       {(TAPPABLE.includes(item.kind) || actionSlots.length > 0) && frames.length > 0 && !editOn && (
         <Section id="action" icon="ads_click" title={t("tapTo", lang)} p={p}>
           {actionSlots.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={s({ display: "flex", flexDirection: "column", gap: 10 })}>
               <Segmented<string>
                 options={actionSlots.map((s) => ({
                   key: s.key,

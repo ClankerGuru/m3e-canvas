@@ -1,6 +1,7 @@
-import type { CSSProperties } from "react";
+import type { CSSProperties } from "@/lib/hooks";
 import { FAB_MENU_TABS, KIND_TEXT, NAV_TABS, TAB_LABELS, getLang, t } from "./i18n";
-import { Contrast, schemeFromSeed } from "./color";
+import { schemeFromSeed } from "./color";
+import type { Contrast } from "./color";
 
 /* ---------- geometry ---------- */
 export const H = 56; // M3 medium button height (dp)

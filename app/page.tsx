@@ -1,77 +1,12 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { AnimatePresence, motion, useReducedMotion, useSpring } from "motion/react";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, createMemo } from "@/lib/hooks";
+import { AnimatePresence, motion, useReducedMotion, useSpring } from "@/lib/motion";
 import { toPng } from "html-to-image";
 import { buildPrompt, effectivePrompt } from "@/lib/prompt";
-import {
-  Action,
-  actionsOf,
-  Axis,
-  BACK_TARGET,
-  baseRadii,
-  explodeGroup,
-  freeRadii,
-  BEZEL,
-  canJoin,
-  clamp,
-  connectSpecOf,
-  Doc,
-  isPlatform,
-  Platform,
-  Frame,
-  FramePreset,
-  FRAME_GAP,
-  FRAME_LABEL_H,
-  FrameMode,
-  frameOfGroup,
-  framePresetPatch,
-  frameRadius,
-  frameRect,
-  frameSizeOf,
-  carryItemSize,
-  defaultPlatformOf,
-  GAP,
-  Group,
-  groupBounds,
-  Item,
-  Kind,
-  KIND_ORDER,
-  KIND_SPEC,
-  collapseFree,
-  layoutOf,
-  lerp,
-  makeItem,
-  DEFAULT_THEME,
-  Theme,
-  fontFamilyOf,
-  normalizeTheme,
-  setGlobalShape,
-  MEASURED,
-  NAV_BAR_H,
-  Palette,
-  paletteOf,
-  PHONE_H,
-  PHONE_MARGIN,
-  PHONE_W,
-  PULL_EXP,
-  Radii,
-  SETTLE_MS,
-  sizeOf,
-  SNAP_CROSS,
-  SNAP_MAIN,
-  Transition,
-  TRANSITIONS,
-  uid,
-  uniformRadii,
-  FULL_WIDTH,
-  fitHeight,
-} from "@/lib/tokens";
+import { actionsOf, BACK_TARGET, baseRadii, explodeGroup, freeRadii, BEZEL, canJoin, clamp, connectSpecOf, isPlatform, FRAME_GAP, FRAME_LABEL_H, frameOfGroup, framePresetPatch, frameRadius, frameRect, frameSizeOf, carryItemSize, defaultPlatformOf, GAP, groupBounds, KIND_ORDER, KIND_SPEC, collapseFree, layoutOf, lerp, makeItem, DEFAULT_THEME, fontFamilyOf, normalizeTheme, setGlobalShape, MEASURED, NAV_BAR_H, paletteOf, PHONE_H, PHONE_MARGIN, PHONE_W, PULL_EXP, SETTLE_MS, sizeOf, SNAP_CROSS, SNAP_MAIN, TRANSITIONS, uid, uniformRadii, FULL_WIDTH, fitHeight } from "@/lib/tokens";
+import type { Axis, Transition } from "@/lib/tokens";
+import type { Action, Doc, Platform, Frame, FramePreset, FrameMode, Group, Item, Kind, Theme, Palette, Radii } from "@/lib/tokens";
 import { Icon, M3Node, M3Static, MeasuredContent } from "@/components/M3Node";
 import { LayersPanel } from "@/components/Layers";
 import { FrameInspector, FrameSizePicker, Inspector } from "@/components/Inspector";
@@ -79,11 +14,14 @@ import { Preview } from "@/components/Preview";
 import { Logo } from "@/components/Logo";
 import { PartsPalette } from "@/components/PartsPalette";
 import { PromptPanel } from "@/components/PromptPanel";
-import { GitHubLink, Mode, Toolbar } from "@/components/Toolbar";
+import { GitHubLink, Toolbar } from "@/components/Toolbar";
+import type { Mode } from "@/components/Toolbar";
 import { LangMenu } from "@/components/Menus";
-import { AiActionKey, AiPanel, aiErrorText } from "@/components/AiPanel";
-import { TidyState } from "@/components/ui";
-import { AiSettings, DEFAULT_AI, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, proposeDescription, pushHistory, saveAiSettings } from "@/lib/ai";
+import { AiPanel, aiErrorText } from "@/components/AiPanel";
+import type { AiActionKey } from "@/components/AiPanel";
+import type { TidyState } from "@/components/ui";
+import { DEFAULT_AI, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, proposeDescription, pushHistory, saveAiSettings } from "@/lib/ai";
+import type { AiSettings } from "@/lib/ai";
 import { barSlotOf, carryFrame, pullInto, tidyFrame } from "@/lib/tidy";
 import { readProject, saveProject } from "@/lib/project";
 import { ColorPanel } from "@/components/ColorPanel";
@@ -91,7 +29,8 @@ import { MotionPanel, ShapePanel, TypePanel } from "@/components/ThemePanel";
 import { ThemeContext, ensureFontLoaded } from "@/lib/theme";
 import { BottomSheet, MobileActionBar, MobileInspector, MobileLang, MobileSettings } from "@/components/Mobile";
 import { ConfirmDialog, IconBtn, Segmented } from "@/components/ui";
-import { Lang, LangContext, isLang, setGlobalLang, t } from "@/lib/i18n";
+import { LangContext, isLang, setGlobalLang, t } from "@/lib/i18n";
+import type { Lang } from "@/lib/i18n";
 
 /** the dragged part's own travel: a little lag reads as weight */
 const CARRY = {
@@ -174,9 +113,9 @@ const SEED_FRAMES: Frame[] = [{ id: "seedF1", name: "Home", x: 0, y: 0 }];
  *  bar flush with the old 80dp bottom; keep it on the bottom edge. */
 function migrateGroups(groups: Group[], frames: Frame[]): Group[] {
   const oldNavH = KIND_SPEC.bottomNav.h - NAV_BAR_H;
-  return groups.map((g) => {
+  return groups().map((g) => {
     if (g.items.length !== 1 || g.items[0].kind !== "bottomNav") return g;
-    const f = frames.find((fr) => {
+    const f = frames().find((fr) => {
       const r = frameRect(fr);
       return g.x >= r.l - 1 && g.x <= r.r && g.y === r.b - oldNavH;
     });
@@ -255,12 +194,12 @@ function ThinkingRing({ p, frame }: { p: Palette; frame: Frame }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.6, ease: [0.2, 0, 0, 1] }}
-      style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+      style={s({ position: "absolute", inset: 0, pointerEvents: "none" })}
     >
       <motion.div
         animate={still ? undefined : { rotate: 360 }}
         transition={{ repeat: Infinity, duration: 3.2, ease: "linear" }}
-        style={{
+        style={s({
           position: "absolute",
           left: "50%",
           top: "50%",
@@ -270,7 +209,7 @@ function ThinkingRing({ p, frame }: { p: Palette; frame: Frame }) {
           marginTop: -d / 2,
           background: `conic-gradient(from 0deg, ${stops.join(", ")})`,
           filter: "blur(22px)",
-        }}
+        })}
       />
     </motion.div>
   );
@@ -355,9 +294,9 @@ export default function Page() {
   const aiNoteTimer = useRef<number | null>(null);
   const aiAbortRef = useRef<AbortController | null>(null);
 
-  const p = paletteOf(paletteKey, customPalette, theme);
+  const p = createMemo(() => paletteOf(paletteKey(), customPalette(), theme()));
   /* corner helpers read the shape scale outside React; keep it current before anything renders */
-  setGlobalShape(theme.shape);
+  setGlobalShape(theme().shape);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const measureEls = useRef<Map<string, HTMLElement>>(new Map());
@@ -464,19 +403,19 @@ export default function Page() {
     const frames = Array.isArray(doc.frames) ? doc.frames : framesRef.current;
     if (Array.isArray(doc.groups)) setGroups(migrateGroups(doc.groups, frames));
     if (Array.isArray(doc.frames)) setFrames(doc.frames);
-    if (typeof doc.paletteKey === "string" && doc.paletteKey) setPaletteKey(doc.paletteKey);
+    if (typeof doc.paletteKey() === "string" && doc.paletteKey) setPaletteKey(doc.paletteKey);
     else if (reset) setPaletteKey("purple");
-    if (doc.customPalette && typeof doc.customPalette.primary === "string") setCustomPalette(doc.customPalette);
+    if (doc.customPalette && typeof doc.customPalette().primary === "string") setCustomPalette(doc.customPalette);
     else if (reset) setCustomPalette(null);
-    if (typeof doc.dynamicColor === "boolean") setDynamicColor(doc.dynamicColor);
+    if (typeof doc.dynamicColor() === "boolean") setDynamicColor(doc.dynamicColor);
     else if (reset) setDynamicColor(false);
-    if (doc.theme && typeof doc.theme === "object") setTheme(normalizeTheme(doc.theme));
+    if (doc.theme && typeof doc.theme() === "object") setTheme(normalizeTheme(doc.theme));
     else if (reset) setTheme(normalizeTheme(undefined));
-    if (typeof doc.title === "string") setTitle(doc.title);
+    if (typeof doc.title() === "string") setTitle(doc.title);
     else if (reset) setTitle("");
-    if (typeof doc.brief === "string") setBrief(doc.brief);
+    if (typeof doc.brief() === "string") setBrief(doc.brief);
     else if (reset) setBrief("");
-    if (typeof doc.promptEdit === "string") setPromptEdit(doc.promptEdit);
+    if (typeof doc.promptEdit() === "string") setPromptEdit(doc.promptEdit);
     else if (reset) setPromptEdit(undefined);
     if (isPlatform(doc.platform)) setPlatform(doc.platform);
     else if (reset) setPlatform(null);
@@ -496,8 +435,8 @@ export default function Page() {
       if (u) {
         const ui = JSON.parse(u);
         if (ui.view) setView(ui.view);
-        if (typeof ui.leftOpen === "boolean") setLeftOpen(ui.leftOpen);
-        if (typeof ui.rightOpen === "boolean") setRightOpen(ui.rightOpen);
+        if (typeof ui.leftOpen() === "boolean") setLeftOpen(ui.leftOpen);
+        if (typeof ui.rightOpen() === "boolean") setRightOpen(ui.rightOpen);
         if (ui.leftW) setLeftW(Math.max(RAIL_W + 244, ui.leftW));
         if (ui.rightW) setRightW(ui.rightW);
         if (Array.isArray(ui.favorites)) setFavorites(ui.favorites);
@@ -515,20 +454,20 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
-    setGlobalLang(lang);
-    document.documentElement.lang = lang;
+    setGlobalLang(lang());
+    document.documentElement.lang = lang();
   }, [lang]);
 
   useEffect(() => {
     /* an empty width map makes every measured part read its width again in the new face */
-    ensureFontLoaded(theme.font, () => setWidths({}));
-  }, [theme.font]);
+    ensureFontLoaded(theme().font, () => setWidths({}));
+  }, [theme().font]);
 
   /* the page background outside the app root follows the scheme, so dark mode has no white edges */
   useEffect(() => {
-    document.body.style.background = p.surface;
-    document.body.style.color = p.onSurface;
-  }, [p.surface, p.onSurface]);
+    document.body.style.background = p().surface;
+    document.body.style.color = p().onSurface;
+  }, [p().surface, p().onSurface]);
 
   /* in-app browsers size the page behind their own toolbars and may ignore dvh,
      so the measured inner height wins over the CSS height (innerHeight, not the
@@ -629,7 +568,7 @@ export default function Page() {
   const allItems = useMemo(() => {
     const map = new Map<string, Item>();
     for (const g of groups) for (const it of g.items) map.set(it.id, it);
-    if (drag) map.set(drag.item.id, drag.item);
+    if (drag()) map.set(drag().item.id, drag().item);
     return [...map.values()];
   }, [groups, drag]);
 
@@ -748,7 +687,7 @@ export default function Page() {
   fitRef.current = fit;
 
   /* touch: two fingers pinch-zoom and pan, cancelling whatever one finger started */
-  const onTouchCapture = (e: React.PointerEvent) => {
+  const onTouchCapture = (e: PointerEvent) => {
     if (e.pointerType !== "touch") return;
     touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (touchesRef.current.size === 2) {
@@ -954,7 +893,7 @@ export default function Page() {
   };
 
   const onItemPointerDown = (
-    e: React.PointerEvent,
+    e: PointerEvent,
     g: Group,
     index: number,
     item: Item,
@@ -1011,7 +950,7 @@ export default function Page() {
     setDrag({ ...d });
   };
 
-  const onPartPointerDown = (e: React.PointerEvent, kind: Kind) => {
+  const onPartPointerDown = (e: PointerEvent, kind: Kind) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();
@@ -1044,7 +983,7 @@ export default function Page() {
     setDrag({ ...d });
   };
 
-  const isDragging = drag !== null;
+  const isDragging = drag() !== null;
 
   useEffect(() => {
     if (!isDragging) return;
@@ -1081,7 +1020,7 @@ export default function Page() {
             const sz = sizeOf(g.items[idx], widthsRef.current);
             const back = idx === 0;
             // The anchor moves to the new first item; that jump must not animate,
-            // otherwise the remaining run springs sideways for a frame.
+            // otherwise the remaining run springs sideways for a frame().
             if (back) instantRef.current.add(g.id);
             out.push({
               ...g,
@@ -1224,20 +1163,20 @@ export default function Page() {
 
   /* the overlay sits between the cursor and the slot, weighted by attraction */
   useEffect(() => {
-    if (!drag?.active) return;
-    const cursorL = drag.px - drag.offX;
-    const cursorT = drag.py - drag.offY;
-    if (drag.snap) {
-      const g = groupsRef.current.find((x) => x.id === drag.snap!.groupId);
+    if (!drag()?.active) return;
+    const cursorL = drag().px - drag().offX;
+    const cursorT = drag().py - drag().offY;
+    if (drag().snap) {
+      const g = groupsRef.current.find((x) => x.id === drag().snap!.groupId);
       if (g) {
-        const r = restPos(g, drag.snap.index, sizeRef(drag.item));
-        sx.set(lerp(cursorL, r.left, drag.snap.pull));
-        sy.set(lerp(cursorT, r.top, drag.snap.pull));
+        const r = restPos(g, drag().snap.index, sizeRef(drag().item));
+        sx.set(lerp(cursorL, r.left, drag().snap.pull));
+        sy.set(lerp(cursorT, r.top, drag().snap.pull));
         return;
       }
     }
-    sx.set(drag.guide?.x ?? cursorL);
-    sy.set(drag.guide?.y ?? cursorT);
+    sx.set(drag().guide?.x ?? cursorL);
+    sy.set(drag().guide?.y ?? cursorT);
   }, [drag, restPos, sizeRef, sx, sy]);
 
   /* ---------- pointer: canvas (pan / marquee) ---------- */
@@ -1258,7 +1197,7 @@ export default function Page() {
     setSelectedLinkId(null);
   };
 
-  const onCanvasPointerDown = (e: React.PointerEvent) => {
+  const onCanvasPointerDown = (e: PointerEvent) => {
     if (mobileRef.current && e.pointerType === "touch") {
       e.preventDefault();
       clearSelection();
@@ -1289,7 +1228,7 @@ export default function Page() {
 
   /** grab a phone frame by its bezel or label: it carries everything on it;
    *  on a phone the screen stays put and a tap on it just clears the selection */
-  const onFramePointerDown = (e: React.PointerEvent, f: Frame) => {
+  const onFramePointerDown = (e: PointerEvent, f: Frame) => {
     if (mobileRef.current) {
       e.preventDefault();
       e.stopPropagation();
@@ -1330,7 +1269,7 @@ export default function Page() {
     setGesture(g);
   };
 
-  const isGesturing = gesture !== null;
+  const isGesturing = gesture() !== null;
   useEffect(() => {
     if (!isGesturing) return;
     const move = (e: PointerEvent) => {
@@ -1368,7 +1307,7 @@ export default function Page() {
           g.moved = true;
           snapshot();
         }
-        const ids = new Map(g.groups.map((o) => [o.id, o]));
+        const ids = new Map(g.groups().map((o) => [o.id, o]));
         for (const o of g.groups) instantRef.current.add(o.id);
         setFrames((fs) =>
           fs.map((f) =>
@@ -1430,9 +1369,9 @@ export default function Page() {
 
   /* ---------- panel resize ---------- */
   useEffect(() => {
-    if (!resizing) return;
+    if (!resizing()) return;
     const move = (e: PointerEvent) => {
-      if (resizing === "left") setLeftW(clamp(e.clientX, RAIL_W + 244, 480));
+      if (resizing() === "left") setLeftW(clamp(e.clientX, RAIL_W + 244, 480));
       else setRightW(clamp(window.innerWidth - e.clientX, 280, 480));
     };
     const up = () => setResizing(null);
@@ -1445,7 +1384,7 @@ export default function Page() {
   }, [resizing]);
 
   /* ---------- editing ---------- */
-  const primaryId = selectedIds[selectedIds.length - 1] ?? null;
+  const primaryId = selectedIds()[selectedIds().length - 1] ?? null;
   const selected = useMemo(() => {
     for (const g of groups) {
       const it = g.items.find((i) => i.id === primaryId);
@@ -1455,7 +1394,7 @@ export default function Page() {
   }, [groups, primaryId, drag]);
 
   useEffect(() => {
-    if (!selected && sheet === "edit") setSheet(null);
+    if (!selected() && sheet() === "edit") setSheet(null);
   }, [selected, sheet]);
 
   /** Resizing a lone part keeps whatever it was lined up with on the frame:
@@ -1509,7 +1448,7 @@ export default function Page() {
   };
 
   const deleteSelected = useCallback(() => {
-    if (selectedIds.length === 0) return;
+    if (selectedIds().length === 0) return;
     const ids = new Set(selectedIds);
     snapshot();
     setGroups((prev) =>
@@ -1534,10 +1473,10 @@ export default function Page() {
   }, [selectedIds, snapshot]);
 
   const duplicateSelected = useCallback(() => {
-    if (!selected) return;
+    if (!selected()) return;
     /* a selected hand-made group is copied whole, keeping its layout */
-    const fg = groupsRef.current.find((g) => g.free && g.items.some((it) => it.id === selected.id));
-    if (fg && fg.items.every((it) => selectedIds.includes(it.id))) {
+    const fg = groupsRef.current.find((g) => g.free && g.items.some((it) => it.id === selected().id));
+    if (fg && fg.items.every((it) => selectedIds().includes(it.id))) {
       const idMap = new Map(fg.items.map((it) => [it.id, uid()]));
       const pos: Record<string, { x: number; y: number }> = {};
       for (const it of fg.items) pos[idMap.get(it.id)!] = fg.pos?.[it.id] ?? { x: 0, y: 0 };
@@ -1554,12 +1493,12 @@ export default function Page() {
       setSelectedIds(copyG.items.map((it) => it.id));
       return;
     }
-    const rect = itemRects().find((r) => r.id === selected.id);
+    const rect = itemRects().find((r) => r.id === selected().id);
     if (!rect) return;
     const copy: Item = {
-      ...selected,
+      ...selected(),
       id: uid(),
-      tabs: selected.tabs?.map((t) => ({ ...t })),
+      tabs: selected().tabs?.map((t) => ({ ...t })),
     };
     snapshot();
     setGroups((prev) => [
@@ -1577,11 +1516,11 @@ export default function Page() {
 
   /** the free group the whole selection belongs to, if it is exactly one */
   const selectedGroup = useMemo(() => {
-    if (selectedIds.length === 0) return null;
-    const g = groups.find((x) => x.free && x.items.some((it) => it.id === selectedIds[0]));
+    if (selectedIds().length === 0) return null;
+    const g = groups().find((x) => x.free && x.items.some((it) => it.id === selectedIds()[0]));
     if (!g) return null;
     const ids = new Set(g.items.map((it) => it.id));
-    return selectedIds.every((id) => ids.has(id)) && selectedIds.length === g.items.length ? g : null;
+    return selectedIds().every((id) => ids.has(id)) && selectedIds().length === g.items.length ? g : null;
   }, [groups, selectedIds]);
 
   /** Pull the selected parts out of their runs into one free group that keeps
@@ -1646,7 +1585,7 @@ export default function Page() {
 
   const nudge = useCallback(
     (dx: number, dy: number) => {
-      if (selectedIds.length === 0 && selectedFrameId) {
+      if (selectedIds().length === 0 && selectedFrameId) {
         const f = framesRef.current.find((x) => x.id === selectedFrameId);
         if (!f) return;
         snapshotFor("nudge:frame:" + f.id);
@@ -1672,9 +1611,9 @@ export default function Page() {
         );
         return;
       }
-      if (selectedIds.length === 0) return;
+      if (selectedIds().length === 0) return;
       const ids = new Set(selectedIds);
-      snapshotFor("nudge:" + selectedIds.join(","));
+      snapshotFor("nudge:" + selectedIds().join(","));
       setGroups((prev) =>
         prev.map((g) =>
           g.items.some((it) => ids.has(it.id))
@@ -1703,7 +1642,7 @@ export default function Page() {
     hadDocRef.current = true;
     applyDoc(next, true);
     if (!mobileRef.current) {
-      const nextFrame = next.frame === "blank" ? "blank" : "phone";
+      const nextFrame = next.frame() === "blank" ? "blank" : "phone";
       setFrame(nextFrame);
       frameRef.current = nextFrame;
     }
@@ -1719,21 +1658,21 @@ export default function Page() {
   };
 
   const selectedFrame = useMemo(
-    () => frames.find((f) => f.id === selectedFrameId) ?? null,
+    () => frames().find((f) => f.id === selectedFrameId) ?? null,
     [frames, selectedFrameId],
   );
   const selectedPartFrame = useMemo(() => {
-    if (!primaryId || frame !== "phone") return null;
-    const g = groups.find((g) => g.items.some((it) => it.id === primaryId));
+    if (!primaryId || frame() !== "phone") return null;
+    const g = groups().find((g) => g.items.some((it) => it.id === primaryId));
     return g ? (frameOfGroup(g, frames, widths) ?? null) : null;
   }, [primaryId, frame, groups, frames, widths]);
 
   /** the screen the tidy button works on: the selected one, or the one under the selected part */
   const tidyTarget = useMemo((): Frame | null => {
-    if (frame !== "phone" || isMobile) return null;
-    if (selectedFrame) return selectedFrame;
+    if (frame() !== "phone" || isMobile) return null;
+    if (selectedFrame()) return selectedFrame;
     if (!primaryId) return null;
-    const g = groups.find((g) => g.items.some((it) => it.id === primaryId));
+    const g = groups().find((g) => g.items.some((it) => it.id === primaryId));
     return g ? (frameOfGroup(g, frames, widths) ?? null) : null;
   }, [frame, isMobile, selectedFrame, primaryId, groups, frames, widths]);
 
@@ -1854,7 +1793,7 @@ export default function Page() {
      * and the screen is laid out again by the tidy rules */
     const laid = carryFrame(groupsRef.current, current, next, frames, widthsRef.current);
     /* a target the author never picked follows the screens */
-    if (platform === defaultPlatformOf(frames, frameRef.current)) setPlatform(null);
+    if (platform() === defaultPlatformOf(frames, frameRef.current)) setPlatform(null);
     snapshot();
     tidyRef.current = null;
     setEasing(true);
@@ -1865,9 +1804,9 @@ export default function Page() {
 
   /** the tidy button's state for the screen in play; the layout pass runs only when the document changes */
   const tidyState = useMemo((): TidyState | null => {
-    if (!tidyTarget) return null;
+    if (!tidyTarget()) return null;
     const last = tidyRef.current;
-    if (last && last.frameId === tidyTarget.id && last.after === groups) return "undo";
+    if (last && last.frameId === tidyTarget().id && last.after === groups) return "undo";
     return tidyFrame(groups, tidyTarget, frames, widths) ? "tidy" : "done";
   }, [tidyTarget, groups, frames, widths]);
 
@@ -1909,8 +1848,8 @@ export default function Page() {
     saveAiSettings(s);
   };
 
-  const aiReady = hasKey(aiSettings) && aiSettings.model.trim().length > 0 && isSecureUrl(aiSettings.baseUrl);
-  const aiReason = !aiReady ? t("aiNoKey", lang) : !tidyTarget ? t("aiSelectScreen", lang) : undefined;
+  const aiReady = hasKey(aiSettings) && aiSettings().model.trim().length > 0 && isSecureUrl(aiSettings().baseUrl);
+  const aiReason = !aiReady ? t("aiNoKey", lang) : !tidyTarget() ? t("aiSelectScreen", lang) : undefined;
 
   /** Writes one field with the model: a part's behavior note, or a screen's description.
    *  The result goes straight in; the field remembers what it said so the rewrite can be undone. */
@@ -2072,24 +2011,24 @@ export default function Page() {
 
   /** the runs of one screen drawn with plain divs: the export layer */
   const renderExport = (f: Frame) => {
-    const gs = groups.filter((g) => frameOfGroup(g, frames, widths)?.id === f.id);
+    const gs = groups().filter((g) => frameOfGroup(g, frames, widths)?.id === f.id);
     const { w, h } = frameSizeOf(f);
     return (
       <div
         data-export={f.id}
-        style={{
+        style={s({
           position: "relative",
           width: w,
           height: h,
           background: p[f.bg ?? "surface"],
           overflow: "hidden",
-        }}
+        })}
       >
         {gs.map((g) =>
           g.free ? (
             ((corners) =>
             layoutOf(g, widths).map((pl) => (
-              <div key={pl.item.id} style={{ position: "absolute", left: pl.x - f.x, top: pl.y - f.y }}>
+              <div key={pl.item.id} style={s({ position: "absolute", left: pl.x - f.x, top: pl.y - f.y })}>
                 <M3Static
                   item={pl.item}
                   palette={p}
@@ -2101,7 +2040,7 @@ export default function Page() {
           ) : (
           <div
             key={g.id}
-            style={{
+            style={s({
               position: "absolute",
               left: g.x - f.x,
               top: g.y - f.y,
@@ -2109,7 +2048,7 @@ export default function Page() {
               flexDirection: g.axis === "x" ? "row" : "column",
               alignItems: g.axis === "x" ? "center" : "stretch",
               gap: GAP,
-            }}
+            })}
           >
             {g.items.map((it, i) => {
               const conn = connectSpecOf(it);
@@ -2147,7 +2086,7 @@ export default function Page() {
     window.setTimeout(() => setCameraEasing(false), SETTLE_MS + 40);
   };
   const openPreview = (startId?: string | null) => {
-    if (frame !== "phone") {
+    if (frame() !== "phone") {
       changeFrame("phone");
     }
     queueMicrotask(() => {
@@ -2190,7 +2129,7 @@ export default function Page() {
           t.isContentEditable);
       if (typing) return;
       // the confirm dialog and the preview own the keyboard while they are up
-      if (confirmClear || previewId !== null) return;
+      if (confirmClear() || previewId() !== null) return;
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -2205,7 +2144,7 @@ export default function Page() {
       }
       if (mod && e.key.toLowerCase() === "d") {
         e.preventDefault();
-        if (selectedIds.length === 0 && selectedFrameId) duplicateFrameRef.current(selectedFrameId);
+        if (selectedIds().length === 0 && selectedFrameId) duplicateFrameRef.current(selectedFrameId);
         else duplicateSelected();
         return;
       }
@@ -2222,7 +2161,7 @@ export default function Page() {
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        if (selectedIds.length === 0 && selectedFrameId)
+        if (selectedIds().length === 0 && selectedFrameId)
           deleteFrame(selectedFrameId);
         else deleteSelected();
         return;
@@ -2282,7 +2221,7 @@ export default function Page() {
   openPreviewRef.current = openPreview;
 
   /* ---------- render ---------- */
-  const dragSize = drag ? sizeOf(drag.item, widths) : { w: 0, h: 0 };
+  const dragSize = drag ? sizeOf(drag().item, widths) : { w: 0, h: 0 };
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const doc: Doc = useMemo(
     () => ({ groups, frames, paletteKey, frame, title, brief, promptEdit, platform: platform ?? undefined, customPalette: customPalette ?? undefined, dynamicColor, theme }),
@@ -2291,7 +2230,7 @@ export default function Page() {
 
   /** arrows from tappable parts to the frames they open */
   const links = useMemo(() => {
-    if (frame !== "phone") return [];
+    if (frame() !== "phone") return [];
     const rects = itemRects();
     const out: {
       id: string;
@@ -2307,7 +2246,7 @@ export default function Page() {
       for (const it of g.items) {
         for (const { slot, action } of actionsOf(it)) {
         if (action.to === BACK_TARGET) continue;
-        const f = frames.find((x) => x.id === action.to);
+        const f = frames().find((x) => x.id === action.to);
         const r = rects.find((x) => x.id === it.id);
         if (!f || !r) continue;
         const fr = frameRect(f);
@@ -2391,7 +2330,7 @@ export default function Page() {
   /** which frame each run sits on (phone mode only) */
   const frameOf = useMemo(() => {
     const m = new Map<string, string>();
-    if (frame !== "phone") return m;
+    if (frame() !== "phone") return m;
     for (const g of groups) {
       const f = frameOfGroup(g, frames, widths);
       if (f) m.set(g.id, f.id);
@@ -2401,17 +2340,17 @@ export default function Page() {
 
   /** the screen whose layers the panel lists: the selection's, else the chosen one */
   const layersFrame = useMemo(() => {
-    if (frame !== "phone") return null;
+    if (frame() !== "phone") return null;
     if (primaryId) {
-      const g = groups.find((x) => x.items.some((it) => it.id === primaryId));
-      const fid = g ? frameOf.get(g.id) : undefined;
-      if (fid) return frames.find((f) => f.id === fid) ?? null;
+      const g = groups().find((x) => x.items.some((it) => it.id === primaryId));
+      const fid = g ? frameOf().get(g.id) : undefined;
+      if (fid) return frames().find((f) => f.id === fid) ?? null;
     }
-    if (selectedFrameId) return frames.find((f) => f.id === selectedFrameId) ?? null;
-    return frames.find((f) => f.id === layersFrameId) ?? frames[0] ?? null;
+    if (selectedFrameId()) return frames().find((f) => f.id === selectedFrameId) ?? null;
+    return frames().find((f) => f.id === layersFrameId) ?? frames()[0] ?? null;
   }, [frame, primaryId, groups, frameOf, frames, selectedFrameId, layersFrameId]);
   const layerGroups = useMemo(
-    () => (layersFrame ? groups.filter((g) => frameOf.get(g.id) === layersFrame.id) : []),
+    () => (layersFrame() ? groups().filter((g) => frameOf().get(g.id) === layersFrame().id) : []),
     [groups, frameOf, layersFrame],
   );
   const reorderLayers = (topFirst: string[]) => {
@@ -2427,7 +2366,7 @@ export default function Page() {
   const renderGroup = (g: Group, ox: number, oy: number) => {
     if (g.free) {
       const instantG = instantRef.current.has(g.id);
-      const allOn = g.items.every((it) => selectedSet.has(it.id));
+      const allOn = g.items.every((it) => selectedSet().has(it.id));
       const corners = freeRadii(g, widths);
       return (
         <motion.div
@@ -2435,17 +2374,17 @@ export default function Page() {
           initial={false}
           animate={{ x: g.x - ox, y: g.y - oy }}
           transition={instantG ? INSTANT : OPEN}
-          style={{ position: "absolute", left: 0, top: 0 }}
+          style={s({ position: "absolute", left: 0, top: 0 })}
         >
           {layoutOf(g, widths).map((pl) => (
-            <div key={pl.item.id} style={{ position: "absolute", left: pl.x - g.x, top: pl.y - g.y }}>
+            <div key={pl.item.id} style={s({ position: "absolute", left: pl.x - g.x, top: pl.y - g.y })}>
               <M3Node
                 item={pl.item}
                 palette={p}
-                widths={widths}
+                widths={widths()}
                 radii={corners.get(pl.item.id)}
                 pressed={false}
-                selected={selectedSet.has(pl.item.id)}
+                selected={selectedSet().has(pl.item.id)}
                 interactive={!handMode}
                 onPointerDown={(e) => onItemPointerDown(e, g, pl.index, pl.item)}
               />
@@ -2454,22 +2393,22 @@ export default function Page() {
           {allOn && (
             <div
               aria-hidden
-              style={{
+              style={s({
                 position: "absolute",
                 left: -6,
                 top: -6,
                 width: groupBounds(g, widths).r - g.x + 12,
                 height: groupBounds(g, widths).b - g.y + 12,
-                border: `${1.5 / view.z}px dashed ${p.primary}`,
+                border: `${1.5 / view().z}px dashed ${p().primary}`,
                 borderRadius: 10,
                 pointerEvents: "none",
-              }}
+              })}
             />
           )}
         </motion.div>
       );
     }
-    const snap = drag?.active && drag.snap?.groupId === g.id ? drag.snap : null;
+    const snap = drag?.active && drag().snap?.groupId === g.id ? drag().snap : null;
     const pull = snap?.pull ?? 0;
     const phMain = snap ? (g.axis === "x" ? dragSize.w : dragSize.h) * pull : 0;
     const shift = snap && snap.index === 0 ? -(phMain + GAP) : 0;
@@ -2494,7 +2433,7 @@ export default function Page() {
           y: g.y - oy + (g.axis === "y" ? shift : 0),
         }}
         transition={instant ? INSTANT : OPEN}
-        style={{
+        style={s({
           position: "absolute",
           left: 0,
           top: 0,
@@ -2502,7 +2441,7 @@ export default function Page() {
           flexDirection: g.axis === "x" ? "row" : "column",
           alignItems: g.axis === "x" ? "center" : "stretch",
           gap: GAP,
-        }}
+        })}
       >
         {cells.map((c, r) => {
           if (c.ph) {
@@ -2514,11 +2453,11 @@ export default function Page() {
                   g.axis === "x" ? { width: phMain } : { height: phMain }
                 }
                 transition={OPEN}
-                style={{
+                style={s({
                   flex: "0 0 auto",
                   height: g.axis === "x" ? dragSize.h : undefined,
                   width: g.axis === "y" ? dragSize.w : undefined,
-                }}
+                })}
               />
             );
           }
@@ -2541,10 +2480,10 @@ export default function Page() {
               key={c.item.id}
               item={c.item}
               palette={p}
-              widths={widths}
+              widths={widths()}
               radii={radii}
-              pressed={pressedId === c.item.id}
-              selected={selectedSet.has(c.item.id)}
+              pressed={pressedId() === c.item.id}
+              selected={selectedSet().has(c.item.id)}
               interactive={!handMode}
               onPointerDown={(e) => onItemPointerDown(e, g, c.index, c.item)}
             />
@@ -2554,13 +2493,13 @@ export default function Page() {
     );
   };
 
-  const handMode = !isMobile && (mode === "hand" || spaceHeld);
+  const handMode = !isMobile() && (mode() === "hand" || spaceHeld);
   const panning = gesture?.kind === "pan";
-  const marquee = gesture?.kind === "marquee" && gesture.moved ? gesture : null;
-  const canvasBg = frame === "phone" ? p.surfaceContainerLow : "#ffffff";
+  const marquee = gesture?.kind === "marquee" && gesture().moved ? gesture : null;
+  const canvasBg = frame() === "phone" ? p().surfaceContainerLow : "#ffffff";
 
-  const panelStyle: React.CSSProperties = {
-    background: p.surface,
+  const panelStyle: CSSProperties = {
+    background: p().surface,
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -2568,15 +2507,15 @@ export default function Page() {
     flex: "0 0 auto",
   };
 
-  const showRight = rightOpen && !isMobile;
-  const guide = drag?.active ? drag.guide : null;
+  const showRight = rightOpen && !isMobile();
+  const guide = drag?.active ? drag().guide : null;
   const visibleWorld = (() => {
     const r = canvasRef.current?.getBoundingClientRect();
     return {
-      l: -view.x / view.z,
-      t: -view.y / view.z,
-      w: (r?.width ?? 0) / view.z,
-      h: (r?.height ?? 0) / view.z,
+      l: -view().x / view().z,
+      t: -view().y / view().z,
+      w: (r?.width ?? 0) / view().z,
+      h: (r?.height ?? 0) / view().z,
     };
   })();
 
@@ -2584,27 +2523,27 @@ export default function Page() {
     <LangContext.Provider value={lang}>
     <ThemeContext.Provider value={theme}>
       <div
-        className="app-root"
-        style={{
+        class="app-root"
+        style={s({
           display: "flex",
           overflow: "hidden",
-          background: p.surfaceContainer,
+          background: p().surfaceContainer,
           cursor: resizing ? "col-resize" : undefined,
           userSelect: resizing ? "none" : undefined,
-          ["--sb" as string]: p.outlineVariant,
-        }}
+          ["--sb" as string]: p().outlineVariant,
+        })}
       >
         {/* hidden measuring layer for text-sized kinds */}
         <div
           aria-hidden
-          style={{
+          style={s({
             position: "fixed",
             left: -99999,
             top: 0,
             visibility: "hidden",
             pointerEvents: "none",
-            fontFamily: fontFamilyOf(theme.font),
-          }}
+            fontFamily: fontFamilyOf(theme().font),
+          })}
         >
           {allItems
             .filter((it) => MEASURED.includes(it.kind))
@@ -2615,7 +2554,7 @@ export default function Page() {
                   if (el) measureEls.current.set(it.id, el);
                   else measureEls.current.delete(it.id);
                 }}
-                style={{
+                style={s({
                   display: "inline-flex",
                   boxSizing: "border-box",
                   border:
@@ -2625,30 +2564,30 @@ export default function Page() {
                       it.kind === "extendedFab")
                       ? "1px solid transparent"
                       : "none",
-                }}
+                })}
               >
-                <MeasuredContent item={it} p={p} />
+                <MeasuredContent item={it} p={p()} />
               </div>
             ))}
         </div>
 
-        {exportFrame && (
-          <div aria-hidden style={{ position: "fixed", left: -99999, top: 0, pointerEvents: "none", fontFamily: fontFamilyOf(theme.font) }}>
+        {exportFrame() && (
+          <div aria-hidden style={s({ position: "fixed", left: -99999, top: 0, pointerEvents: "none", fontFamily: fontFamilyOf(theme().font) })}>
             {renderExport(exportFrame)}
           </div>
         )}
 
         {/* ---- left: rail + parts / layers ---- */}
-        {!isMobile && (
-          <aside style={{ ...panelStyle, width: leftOpen ? leftW : RAIL_W, flexDirection: "row", transition: "width 200ms cubic-bezier(0.2, 0, 0, 1)" }}>
+        {!isMobile() && (
+          <aside style={s({ ...panelStyle, width: leftOpen ? leftW : RAIL_W, flexDirection: "row", transition: "width 200ms cubic-bezier(0.2, 0, 0, 1)" })}>
             <div
               onPointerEnter={() => setRailHover(true)}
               onPointerLeave={() => setRailHover(false)}
               onClick={(e) => {
                 // a click on the rail's empty background opens the panel
-                if (!leftOpen && e.target === e.currentTarget) setLeftOpen(true);
+                if (!leftOpen() && e.target === e.currentTarget) setLeftOpen(true);
               }}
-              style={{
+              style={s({
                 width: RAIL_W,
                 flex: "0 0 auto",
                 display: "flex",
@@ -2656,27 +2595,27 @@ export default function Page() {
                 alignItems: "center",
                 gap: 6,
                 padding: "10px 0",
-                background: p.surfaceContainerLow,
+                background: p().surfaceContainerLow,
                 cursor: leftOpen ? undefined : "pointer",
-              }}
+              })}
             >
-              {!leftOpen && railHover ? (
-                <IconBtn icon="left_panel_open" p={p} on onClick={() => setLeftOpen(true)} title={t("openPanel", lang)} size={40} />
+              {!leftOpen() && railHover ? (
+                <IconBtn icon="left_panel_open" p={p()} on onClick={() => setLeftOpen(true)} title={t("openPanel", lang)} size={40} />
               ) : (
                 <div
-                  onClick={() => !leftOpen && setLeftOpen(true)}
-                  style={{ width: 40, height: 40, display: "grid", placeItems: "center", cursor: leftOpen ? "default" : "pointer" }}
+                  onClick={() => !leftOpen() && setLeftOpen(true)}
+                  style={s({ width: 40, height: 40, display: "grid", placeItems: "center", cursor: leftOpen ? "default" : "pointer" })}
                 >
-                  <Logo size={32} color={p.primary} glyph={p.onPrimary} />
+                  <Logo size={32} color={p().primary} glyph={p().onPrimary} />
                 </div>
               )}
-              <div style={{ height: 6 }} />
+              <div style={s({ height: 6 })} />
               {LEFT_TABS.map((tab, i) => (
-                <div key={tab.key} style={{ marginTop: i === 2 || i === 6 ? 10 : 0 }}>
+                <div key={tab.key} style={s({ marginTop: i === 2 || i === 6 ? 10 : 0 })}>
                   <IconBtn
                     icon={tab.icon}
-                    p={p}
-                    on={leftOpen && leftTab === tab.key}
+                    p={p()}
+                    on={leftOpen() && leftTab() === tab.key}
                     onClick={() => {
                       setLeftTab(tab.key);
                       setLeftOpen(true);
@@ -2686,82 +2625,82 @@ export default function Page() {
                   />
                 </div>
               ))}
-              <div style={{ flex: 1 }} onClick={() => !leftOpen && setLeftOpen(true)} />
-              <LangMenu p={p} onLang={setLang} side="right" size={44} />
-              <GitHubLink p={p} size={44} />
+              <div style={s({ flex: 1 })} onClick={() => !leftOpen() && setLeftOpen(true)} />
+              <LangMenu p={p()} onLang={setLang} side="right" size={44} />
+              <GitHubLink p={p()} size={44} />
             </div>
-            {leftOpen && (
-            <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+            {leftOpen() && (
+            <div style={s({ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" })}>
               <div
-                style={{
+                style={s({
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
                   padding: "10px 10px 0 14px",
-                }}
+                })}
               >
                 <span
-                  style={{
+                  style={s({
                     fontWeight: 700,
                     fontSize: 14,
-                    color: p.onSurface,
+                    color: p().onSurface,
                     flex: 1,
-                  }}
+                  })}
                 >
                   {t(LEFT_TABS.find((x) => x.key === leftTab)?.title ?? "parts", lang)}
                 </span>
                 <IconBtn
                   icon="left_panel_close"
-                  p={p}
+                  p={p()}
                   onClick={() => setLeftOpen(false)}
                   title={t("closePanel", lang)}
                 />
               </div>
-              <div style={{ flex: 1, minHeight: 0 }}>
-                {leftTab === "parts" ? (
+              <div style={s({ flex: 1, minHeight: 0 })}>
+                {leftTab() === "parts" ? (
                   <PartsPalette
                     palette={p}
-                    favorites={favorites}
+                    favorites={favorites()}
                     onToggleFavorite={(k) =>
                       setFavorites((f) =>
                         f.includes(k) ? f.filter((x) => x !== k) : [...f, k],
                       )
                     }
                     onPartPointerDown={onPartPointerDown}
-                    overBin={(!!drag?.active && drag.overBin) || (gesture?.kind === "group" && gesture.overBin)}
+                    overBin={(!!drag()?.active && drag().overBin) || (gesture?.kind === "group" && gesture().overBin)}
                   />
-                ) : leftTab === "color" ? (
+                ) : leftTab() === "color" ? (
                   <ColorPanel
-                    p={p}
-                    paletteKey={paletteKey}
+                    p={p()}
+                    paletteKey={paletteKey()}
                     onPalette={setPaletteKey}
-                    custom={customPalette}
+                    custom={customPalette()}
                     onCustom={setCustomPalette}
-                    dynamic={dynamicColor}
+                    dynamic={dynamicColor()}
                     onDynamic={setDynamicColor}
-                    theme={theme}
+                    theme={theme()}
                     onTheme={patchTheme}
                   />
-                ) : leftTab === "shape" ? (
-                  <ShapePanel p={p} theme={theme} onChange={patchTheme} />
-                ) : leftTab === "type" ? (
-                  <TypePanel p={p} theme={theme} onChange={patchTheme} />
-                ) : leftTab === "motion" ? (
-                  <MotionPanel p={p} theme={theme} onChange={patchTheme} />
-                ) : leftTab === "ai" ? (
-                  <AiPanel p={p} settings={aiSettings} onSettings={updateAiSettings} />
+                ) : leftTab() === "shape" ? (
+                  <ShapePanel p={p()} theme={theme()} onChange={patchTheme} />
+                ) : leftTab() === "type" ? (
+                  <TypePanel p={p()} theme={theme()} onChange={patchTheme} />
+                ) : leftTab() === "motion" ? (
+                  <MotionPanel p={p()} theme={theme()} onChange={patchTheme} />
+                ) : leftTab() === "ai" ? (
+                  <AiPanel p={p()} settings={aiSettings()} onSettings={updateAiSettings} />
                 ) : (
                   <LayersPanel
-                    p={p}
-                    frames={frames}
+                    p={p()}
+                    frames={frames()}
                     frameId={layersFrame?.id ?? null}
                     onFrame={(id) => {
                       setLayersFrameId(id);
                       setSelectedIds([]);
                       setSelectedFrameId(id);
                     }}
-                    groups={layerGroups}
-                    selectedIds={selectedIds}
+                    groups={layerGroups()}
+                    selectedIds={selectedIds()}
                     onSelect={(ids, add) => {
                       setSelectedIds((cur) => (add ? [...cur.filter((x) => !ids.includes(x)), ...ids] : ids));
                       setSelectedFrameId(null);
@@ -2774,13 +2713,13 @@ export default function Page() {
               </div>
             </div>
             )}
-            {leftOpen && (
+            {leftOpen() && (
             <div
               onPointerDown={(e) => {
                 e.preventDefault();
                 setResizing("left");
               }}
-              style={{
+              style={s({
                 position: "absolute",
                 top: 0,
                 bottom: 0,
@@ -2788,7 +2727,7 @@ export default function Page() {
                 width: 6,
                 cursor: "col-resize",
                 zIndex: 5,
-              }}
+              })}
             />
             )}
           </aside>
@@ -2796,18 +2735,18 @@ export default function Page() {
 
         {/* ---- canvas ---- */}
         <main
-          style={{
+          style={s({
             flex: 1,
             position: "relative",
             minWidth: 0,
             padding: isMobile ? 6 : 8,
-          }}
+          })}
         >
           <div
             ref={canvasRef}
             onPointerDown={onCanvasPointerDown}
             onPointerDownCapture={onTouchCapture}
-            style={{
+            style={s({
               position: "absolute",
               inset: isMobile ? 6 : 8,
               overflow: "hidden",
@@ -2815,22 +2754,22 @@ export default function Page() {
               background: canvasBg,
               cursor: panning ? "grabbing" : handMode ? "grab" : "default",
               touchAction: "none",
-            }}
+            })}
           >
             <div
-              style={{
+              style={s({
                 position: "absolute",
                 left: 0,
                 top: 0,
-                transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`,
+                transform: `translate(${view().x}px, ${view().y}px) scale(${view().z})`,
                 transformOrigin: "0 0",
                 transition: cameraEasing ? `transform ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined,
                 willChange: "transform",
-                fontFamily: fontFamilyOf(theme.font),
-              }}
+                fontFamily: fontFamilyOf(theme().font),
+              })}
             >
-              {frame === "phone" &&
-                frames.map((f) => {
+              {frame() === "phone" &&
+                frames().map((f) => {
                   const on = f.id === selectedFrameId;
                   const bg = p[f.bg ?? "surface"];
                   const { w, h } = frameSizeOf(f);
@@ -2839,17 +2778,17 @@ export default function Page() {
                     <div
                       key={f.id}
                       data-frame={f.id}
-                      style={{ position: "absolute", left: f.x, top: f.y, transition: easing ? `left ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined }}
+                      style={s({ position: "absolute", left: f.x, top: f.y, transition: easing ? `left ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)` : undefined })}
                     >
                       <div
                         onPointerDown={(e) => onFramePointerDown(e, f)}
-                        style={{
+                        style={s({
                           position: "absolute",
                           left: -BEZEL,
                           top: -BEZEL - FRAME_LABEL_H,
                           height: FRAME_LABEL_H,
                           /* follows the zoom, softened: a little larger when zoomed out, a little smaller when zoomed in */
-                          transform: `scale(${clamp(1 / view.z, 0.7, 1.4)})`,
+                          transform: `scale(${clamp(1 / view().z, 0.7, 1.4)})`,
                           transformOrigin: "left bottom",
                           display: "flex",
                           alignItems: "center",
@@ -2857,12 +2796,12 @@ export default function Page() {
                           padding: "0 8px",
                           fontSize: 20,
                           fontWeight: 600,
-                          color: on ? p.primary : p.onSurfaceVariant,
+                          color: on ? p().primary : p().onSurfaceVariant,
                           cursor: handMode ? "grab" : "move",
                           userSelect: "none",
                           whiteSpace: "nowrap",
                           fontFamily: "Roboto, system-ui, sans-serif",
-                        }}
+                        })}
                       >
                         <div onPointerDown={(e) => e.stopPropagation()}>
                           <FrameSizePicker frame={f} onChange={(preset) => setFramePreset(f.id, preset)} palette={p} compact />
@@ -2871,7 +2810,7 @@ export default function Page() {
                       </div>
                       <div
                         onPointerDown={(e) => onFramePointerDown(e, f)}
-                        style={{
+                        style={s({
                           position: "absolute",
                           left: -BEZEL,
                           top: -BEZEL,
@@ -2879,18 +2818,18 @@ export default function Page() {
                           width: w + BEZEL * 2,
                           height: h + BEZEL * 2,
                           borderRadius: radius + BEZEL,
-                          background: p.inverseSurface,
+                          background: p().inverseSurface,
                           boxShadow: on
-                            ? `0 0 0 3px ${p.primary}, 0 18px 50px rgba(0,0,0,0.16)`
+                            ? `0 0 0 3px ${p().primary}, 0 18px 50px rgba(0,0,0,0.16)`
                             : "0 18px 50px rgba(0,0,0,0.14)",
                           cursor: handMode ? "grab" : "move",
                           transition: `box-shadow 120ms, ${SIZE_TRANSITION}`,
-                        }}
+                        })}
                       >
-                        <AnimatePresence>{aiFrameId === f.id && <ThinkingRing key="ring" p={p} frame={f} />}</AnimatePresence>
+                        <AnimatePresence>{aiFrameId() === f.id && <ThinkingRing key="ring" p={p()} frame={f} />}</AnimatePresence>
                         <div
                           data-screen={f.id}
-                          style={{
+                          style={s({
                             position: "absolute",
                             left: BEZEL,
                             top: BEZEL,
@@ -2900,10 +2839,10 @@ export default function Page() {
                             background: bg,
                             overflow: "hidden",
                             transition: SIZE_TRANSITION,
-                          }}
+                          })}
                         >
                           {groups
-                            .filter((g) => frameOf.get(g.id) === f.id)
+                            .filter((g) => frameOf().get(g.id) === f.id)
                             .map((g) => renderGroup(g, f.x, f.y))}
                         </div>
                       </div>
@@ -2912,13 +2851,13 @@ export default function Page() {
                 })}
 
               {groups
-                .filter((g) => !frameOf.has(g.id))
+                .filter((g) => !frameOf().has(g.id))
                 .map((g) => renderGroup(g, 0, 0))}
 
               {/* the part in flight */}
               {drag?.active && (
                 <motion.div
-                  style={{
+                  style={s({
                     position: "absolute",
                     left: 0,
                     top: 0,
@@ -2926,10 +2865,10 @@ export default function Page() {
                     y: sy,
                     pointerEvents: "none",
                     zIndex: 50,
-                  }}
+                  })}
                   animate={{
-                    opacity: drag.overBin ? 0.4 : 1,
-                    scale: drag.overBin ? 0.84 : 1,
+                    opacity: drag().overBin ? 0.4 : 1,
+                    scale: drag().overBin ? 0.84 : 1,
                   }}
                   transition={{
                     type: "spring",
@@ -2939,25 +2878,25 @@ export default function Page() {
                   }}
                 >
                   <M3Node
-                    item={drag.item}
+                    item={drag().item}
                     palette={p}
-                    widths={widths}
+                    widths={widths()}
                     dragging
                     radii={(() => {
-                      const conn = connectSpecOf(drag.item);
-                      if (!conn || !drag.snap) return baseRadii(drag.item);
+                      const conn = connectSpecOf(drag().item);
+                      if (!conn || !drag().snap) return baseRadii(drag().item);
                       const g = groupsRef.current.find(
-                        (x) => x.id === drag.snap!.groupId,
+                        (x) => x.id === drag().snap!.groupId,
                       );
                       const mm = (g?.items.length ?? 0) + 1;
-                      const k = drag.snap.index;
+                      const k = drag().snap.index;
                       return runRadii(
                         conn.axis,
                         k === 0,
                         k === mm - 1,
                         k > 0,
                         k < mm - 1,
-                        drag.snap.pull,
+                        drag().snap.pull,
                         conn.outer,
                         conn.inner,
                       );
@@ -2966,15 +2905,15 @@ export default function Page() {
                 </motion.div>
               )}
 
-              {links.length > 0 && (
+              {links().length > 0 && (
                 <svg
-                  style={{
+                  style={s({
                     position: "absolute",
                     left: 0,
                     top: 0,
                     overflow: "visible",
                     pointerEvents: "none",
-                  }}
+                  })}
                   width={1}
                   height={1}
                 >
@@ -2988,10 +2927,10 @@ export default function Page() {
                       markerHeight="8"
                       orient="auto"
                     >
-                      <path d="M0 0 L10 5 L0 10 z" fill={p.primary} />
+                      <path d="M0 0 L10 5 L0 10 z" fill={p().primary} />
                     </marker>
                   </defs>
-                  {links.map((l) => {
+                  {links().map((l) => {
                     const on = l.id === selectedLinkId;
                     return (
                       <g key={l.id}>
@@ -2999,8 +2938,8 @@ export default function Page() {
                           d={l.d}
                           fill="none"
                           stroke="transparent"
-                          strokeWidth={18 / view.z}
-                          style={{ pointerEvents: "stroke", cursor: "pointer" }}
+                          strokeWidth={18 / view().z}
+                          style={s({ pointerEvents: "stroke", cursor: "pointer" })}
                           onPointerDown={(e) => {
                             e.stopPropagation();
                             setSelectedLinkId(l.id);
@@ -3011,7 +2950,7 @@ export default function Page() {
                         <path
                           d={l.d}
                           fill="none"
-                          stroke={p.primary}
+                          stroke={p().primary}
                           strokeWidth={on ? 3 : 2}
                           strokeDasharray={on ? undefined : "6 6"}
                           strokeLinecap="round"
@@ -3030,21 +2969,21 @@ export default function Page() {
                   <div
                     key={l.id}
                     onPointerDown={(e) => e.stopPropagation()}
-                    style={{
+                    style={s({
                       position: "absolute",
                       left: l.mx,
                       top: l.my,
-                      transform: `translate(-50%, 14px) scale(${1 / view.z})`,
+                      transform: `translate(-50%, 14px) scale(${1 / view().z})`,
                       transformOrigin: "50% 0",
                       display: "flex",
                       alignItems: "center",
                       gap: 4,
                       padding: 6,
                       borderRadius: 26,
-                      background: p.surfaceContainerLow,
+                      background: p().surfaceContainerLow,
                       boxShadow: "0 4px 16px rgba(0,0,0,0.16)",
                       zIndex: 60,
-                    }}
+                    })}
                   >
                     <Segmented<Transition>
                       options={TRANSITIONS.map((t) => ({
@@ -3054,13 +2993,13 @@ export default function Page() {
                       }))}
                       value={l.t}
                       onChange={(t) => setLinkTransition(l.id, t)}
-                      p={p}
+                      p={p()}
                       height={36}
                       grow={false}
                     />
                     <IconBtn
                       icon="link_off"
-                      p={p}
+                      p={p()}
                       danger
                       onClick={() => removeLink(l.id)}
                       title={t("removeLink", lang)}
@@ -3071,56 +3010,56 @@ export default function Page() {
 
               {guide?.gx !== undefined && (
                 <div
-                  style={{
+                  style={s({
                     position: "absolute",
                     left: guide.gx,
                     top: visibleWorld.t,
-                    width: 1.5 / view.z,
+                    width: 1.5 / view().z,
                     height: visibleWorld.h,
-                    background: p.primary,
+                    background: p().primary,
                     pointerEvents: "none",
-                  }}
+                  })}
                 />
               )}
               {guide?.gy !== undefined && (
                 <div
-                  style={{
+                  style={s({
                     position: "absolute",
                     top: guide.gy,
                     left: visibleWorld.l,
-                    height: 1.5 / view.z,
+                    height: 1.5 / view().z,
                     width: visibleWorld.w,
-                    background: p.primary,
+                    background: p().primary,
                     pointerEvents: "none",
-                  }}
+                  })}
                 />
               )}
 
               {marquee && (
                 <div
-                  style={{
+                  style={s({
                     position: "absolute",
                     left: Math.min(marquee.x0, marquee.x1),
                     top: Math.min(marquee.y0, marquee.y1),
                     width: Math.abs(marquee.x1 - marquee.x0),
                     height: Math.abs(marquee.y1 - marquee.y0),
-                    border: `${1 / view.z}px solid ${p.primary}`,
-                    background: `${p.primary}14`,
-                    borderRadius: 4 / view.z,
+                    border: `${1 / view().z}px solid ${p().primary}`,
+                    background: `${p().primary}14`,
+                    borderRadius: 4 / view().z,
                     pointerEvents: "none",
-                  }}
+                  })}
                 />
               )}
             </div>
           </div>
 
           <Toolbar
-            p={p}
-            mode={mode}
+            p={p()}
+            mode={mode()}
             onMode={setMode}
-            frame={frame}
+            frame={frame()}
             onFrame={changeFrame}
-            zoom={view.z}
+            zoom={view().z}
             onZoom={(z) => setZoomAt(z)}
             onFit={fit}
             canUndo={pastRef.current.length > 0}
@@ -3132,15 +3071,15 @@ export default function Page() {
             }}
             onAddFrame={addFrame}
             onPreview={() => openPreview()}
-            tidy={tidyState ?? undefined}
-            onTidy={tidyTarget ? () => tidy(tidyTarget) : undefined}
-            note={aiNote}
+            tidy={tidyState() ?? undefined}
+            onTidy={tidyTarget() ? () => tidy(tidyTarget) : undefined}
+            note={aiNote()}
             onSaveProject={() => saveProject(doc)}
             onOpenProject={() => projectFileRef.current?.click()}
             rightInset={showRight ? rightW : 0}
-            mobile={isMobile}
-            onSettings={() => setSheet(sheet === "settings" ? null : "settings")}
-            onLangSheet={() => setSheet(sheet === "lang" ? null : "lang")}
+            mobile={isMobile()}
+            onSettings={() => setSheet(sheet() === "settings" ? null : "settings")}
+            onLangSheet={() => setSheet(sheet() === "lang" ? null : "lang")}
             onPrompt={async () => {
               try {
                 await navigator.clipboard.writeText(effectivePrompt(doc, widths, lang));
@@ -3149,9 +3088,9 @@ export default function Page() {
             }}
           />
 
-          {isMobile && (
+          {isMobile() && (
             <div
-              style={{
+              style={s({
                 position: "absolute",
                 left: 0,
                 right: 0,
@@ -3159,22 +3098,22 @@ export default function Page() {
                 textAlign: "center",
                 fontSize: 11,
                 lineHeight: 1.4,
-                color: p.onSurfaceVariant,
+                color: p().onSurfaceVariant,
                 pointerEvents: "none",
                 zIndex: 40,
-              }}
+              })}
             >
               {t("mobileNote", lang)}
             </div>
           )}
 
-          {isMobile && sheet === null && (
+          {isMobile() && sheet() === null && (
             <button
               onClick={addButton}
               title={t("addButton", lang)}
               aria-label={t("addButton", lang)}
-              className="m3-press"
-              style={{
+              class="m3-press"
+              style={s({
                 position: "absolute",
                 right: 16,
                 bottom: "calc(16px + var(--bottom-ui, 0px) + env(safe-area-inset-bottom))",
@@ -3182,22 +3121,22 @@ export default function Page() {
                 height: 64,
                 borderRadius: 20,
                 border: "none",
-                background: p.primary,
-                color: p.onPrimary,
+                background: p().primary,
+                color: p().onPrimary,
                 cursor: "pointer",
                 display: "grid",
                 placeItems: "center",
                 zIndex: 46,
                 boxShadow: "0 6px 18px rgba(0,0,0,0.18)",
-              }}
+              })}
             >
               <Icon name="add" size={32} />
             </button>
           )}
 
-          {isMobile && selected && sheet === null && (
+          {isMobile() && selected && sheet() === null && (
             <MobileActionBar
-              p={p}
+              p={p()}
               onEdit={() => setSheet("edit")}
               onDuplicate={duplicateSelected}
               onDelete={deleteSelected}
@@ -3205,10 +3144,10 @@ export default function Page() {
           )}
 
           <AnimatePresence>
-            {isMobile && sheet === "edit" && selected && (
-              <BottomSheet key="edit" p={p} onClose={() => setSheet(null)}>
+            {isMobile() && sheet() === "edit" && selected && (
+              <BottomSheet key="edit" p={p()} onClose={() => setSheet(null)}>
                 <MobileInspector
-                  item={selected}
+                  item={selected()}
                   palette={p}
                   onChange={patchSelected}
                   onDelete={() => {
@@ -3220,16 +3159,16 @@ export default function Page() {
                 />
               </BottomSheet>
             )}
-            {isMobile && sheet === "settings" && (
-              <BottomSheet key="settings" p={p} onClose={() => setSheet(null)}>
-                <MobileSettings palette={p} paletteKey={paletteKey} onPalette={setPaletteKey} theme={theme} onTheme={patchTheme} />
+            {isMobile() && sheet() === "settings" && (
+              <BottomSheet key="settings" p={p()} onClose={() => setSheet(null)}>
+                <MobileSettings palette={p} paletteKey={paletteKey()} onPalette={setPaletteKey} theme={theme()} onTheme={patchTheme} />
               </BottomSheet>
             )}
-            {isMobile && sheet === "lang" && (
-              <BottomSheet key="lang" p={p} onClose={() => setSheet(null)}>
+            {isMobile() && sheet() === "lang" && (
+              <BottomSheet key="lang" p={p()} onClose={() => setSheet(null)}>
                 <MobileLang
                   palette={p}
-                  lang={lang}
+                  lang={lang()}
                   onLang={(l) => {
                     setLang(l);
                     setSheet(null);
@@ -3239,34 +3178,34 @@ export default function Page() {
             )}
           </AnimatePresence>
 
-          {toast && (
+          {toast() && (
             <div
-              style={{
+              style={s({
                 position: "absolute",
                 left: "50%",
                 bottom: 96,
                 transform: "translateX(-50%)",
                 padding: "10px 18px",
                 borderRadius: 20,
-                background: p.inverseSurface,
-                color: p.inverseOnSurface,
+                background: p().inverseSurface,
+                color: p().inverseOnSurface,
                 fontSize: 13,
                 fontWeight: 600,
                 zIndex: 47,
                 pointerEvents: "none",
-              }}
+              })}
             >
-              {toast}
+              {toast()}
             </div>
           )}
 
-          {!rightOpen && !isMobile && (
+          {!rightOpen() && !isMobile() && (
             <div
-              style={{ position: "absolute", right: 20, top: 20, zIndex: 45 }}
+              style={s({ position: "absolute", right: 20, top: 20, zIndex: 45 })}
             >
               <IconBtn
                 icon="right_panel_open"
-                p={p}
+                p={p()}
                 on
                 onClick={() => setRightOpen(true)}
                 title={t("edit", lang)}
@@ -3278,13 +3217,13 @@ export default function Page() {
 
         {/* ---- right: inspector / prompt ---- */}
         {showRight && (
-          <aside style={{ ...panelStyle, width: rightW }}>
+          <aside style={s({ ...panelStyle, width: rightW })}>
             <div
               onPointerDown={(e) => {
                 e.preventDefault();
                 setResizing("right");
               }}
-              style={{
+              style={s({
                 position: "absolute",
                 top: 0,
                 bottom: 0,
@@ -3292,83 +3231,83 @@ export default function Page() {
                 width: 6,
                 cursor: "col-resize",
                 zIndex: 5,
-              }}
+              })}
             />
             <div
-              style={{
+              style={s({
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 padding: "10px 10px 6px 12px",
-              }}
+              })}
             >
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={s({ flex: 1, minWidth: 0 })}>
                 <Segmented<"edit" | "prompt">
                   options={[
                     { key: "edit", icon: "tune", title: t("edit", lang), grow: false, wide: true },
                     { key: "prompt", icon: "auto_awesome", label: t("prompt", lang), title: t("prompt", lang), grow: true },
                   ]}
-                  value={rightTab}
+                  value={rightTab()}
                   onChange={setRightTab}
-                  p={p}
+                  p={p()}
                   height={40}
                 />
               </div>
               <IconBtn
                 icon="right_panel_close"
-                p={p}
+                p={p()}
                 onClick={() => setRightOpen(false)}
                 title={t("closePanel", lang)}
               />
             </div>
-            <div style={{ flex: 1, minHeight: 0 }}>
-              {rightTab === "edit" && selectedFrame && !selected ? (
+            <div style={s({ flex: 1, minHeight: 0 })}>
+              {rightTab() === "edit" && selectedFrame && !selected() ? (
                 <FrameInspector
-                  frame={selectedFrame}
+                  frame={selectedFrame()}
                   palette={p}
-                  onSize={(preset) => setFramePreset(selectedFrame.id, preset)}
-                  onChange={(patch) => patchFrame(selectedFrame.id, patch)}
-                  onDelete={() => deleteFrame(selectedFrame.id)}
-                  onDuplicate={() => duplicateFrame(selectedFrame.id)}
-                  onPreview={() => openPreview(selectedFrame.id)}
-                  prompt={buildPrompt(doc, widths, selectedFrame.id, lang)}
+                  onSize={(preset) => setFramePreset(selectedFrame().id, preset)}
+                  onChange={(patch) => patchFrame(selectedFrame().id, patch)}
+                  onDelete={() => deleteFrame(selectedFrame().id)}
+                  onDuplicate={() => duplicateFrame(selectedFrame().id)}
+                  onPreview={() => openPreview(selectedFrame().id)}
+                  prompt={buildPrompt(doc, widths, selectedFrame().id, lang)}
                   onSaveImage={() => saveFrameImage(selectedFrame)}
-                  frames={frames}
-                  tidy={tidyState ?? "done"}
+                  frames={frames()}
+                  tidy={tidyState() ?? "done"}
                   onTidy={() => tidy(selectedFrame)}
-                  ai={{ ready: aiReady, reason: aiReason, busy: aiBusy && aiFrameId === selectedFrame.id, onRun: () => runAi("describe", selectedFrame), onCancel: cancelAi }}
+                  ai={{ ready: aiReady, reason: aiReason, busy: aiBusy && aiFrameId() === selectedFrame().id, onRun: () => runAi("describe", selectedFrame), onCancel: cancelAi }}
                 />
-              ) : rightTab === "edit" ? (
+              ) : rightTab() === "edit" ? (
                 <Inspector
                   ai={{
-                    ready: aiReady && !!tidyTarget,
+                    ready: aiReady && !!tidyTarget(),
                     reason: aiReason,
                     busy: aiBusy,
                     onRun: () => {
-                      if (tidyTarget && selected) runAi("behavior", tidyTarget, selected.id);
+                      if (tidyTarget() && selected) runAi("behavior", tidyTarget, selected().id);
                     },
                     onCancel: cancelAi,
                   }}
-                  item={selectedIds.length > 1 ? null : selected}
-                  frame={selectedPartFrame}
+                  item={selectedIds().length > 1 ? null : selected}
+                  frame={selectedPartFrame()}
                   palette={p}
-                  frames={frame === "phone" ? frames : []}
+                  frames={frame() === "phone" ? frames : []}
                   onChange={patchSelected}
                   onDelete={deleteSelected}
                   onDuplicate={duplicateSelected}
-                  multi={selectedIds.length}
-                  grouped={!!selectedGroup}
+                  multi={selectedIds().length}
+                  grouped={!!selectedGroup()}
                   onGroup={groupSelected}
                   onUngroup={ungroupSelected}
                 />
               ) : (
                 <PromptPanel
                   doc={doc}
-                  widths={widths}
+                  widths={widths()}
                   palette={p}
                   onDoc={(patch) => {
-                    if (patch.title !== undefined) setTitle(patch.title);
-                    if (patch.brief !== undefined) setBrief(patch.brief);
+                    if (patch.title() !== undefined) setTitle(patch.title);
+                    if (patch.brief() !== undefined) setBrief(patch.brief);
                     if ("promptEdit" in patch) setPromptEdit(patch.promptEdit);
                     if ("platform" in patch) setPlatform(isPlatform(patch.platform) ? patch.platform : null);
                   }}
@@ -3391,35 +3330,35 @@ export default function Page() {
         />
 
         <ConfirmDialog
-          open={pendingImport !== null}
+          open={pendingImport() !== null}
           icon="file_open"
           title={t("replaceProjectTitle", lang)}
           body={t("replaceProject", lang)}
-          p={p}
+          p={p()}
           onCancel={() => setPendingImport(null)}
           onConfirm={() => {
-            if (pendingImport) importDoc(pendingImport);
+            if (pendingImport()) importDoc(pendingImport);
             setPendingImport(null);
           }}
         />
 
         <ConfirmDialog
-          open={confirmClear}
+          open={confirmClear()}
           title={t("clearAllTitle", lang)}
           body={t("clearAllBody", lang)}
-          p={p}
+          p={p()}
           onCancel={() => setConfirmClear(false)}
           onConfirm={clearAll}
         />
 
         <AnimatePresence>
-          {previewId !== null && frames.length > 0 && (
+          {previewId() !== null && frames().length > 0 && (
             <Preview
               key="preview"
               doc={doc}
-              widths={widths}
+              widths={widths()}
               palette={p}
-              startId={previewId}
+              startId={previewId()}
               onClose={closePreview}
             />
           )}

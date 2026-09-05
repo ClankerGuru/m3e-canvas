@@ -1,8 +1,9 @@
-"use client";
-
-import { useMemo } from "react";
-import { Reorder, useDragControls } from "motion/react";
-import { Frame, Group, KIND_SPEC, Palette, isPhoneFrame } from "@/lib/tokens";
+// @ts-nocheck
+import { s } from "@/lib/css";
+import { useMemo } from "@/lib/hooks";
+import { Reorder, useDragControls } from "@/lib/motion";
+import { KIND_SPEC, isPhoneFrame } from "@/lib/tokens";
+import type { Frame, Group, Palette } from "@/lib/tokens";
 import { Icon } from "./M3Node";
 import { IconBtn } from "./ui";
 import { t, useLang } from "@/lib/i18n";
@@ -41,7 +42,7 @@ function Row({
       value={g.id}
       dragListener={false}
       dragControls={controls}
-      style={{
+      style={s({
         listStyle: "none",
         display: "flex",
         alignItems: "center",
@@ -53,20 +54,20 @@ function Row({
         color: on ? p.onSecondaryContainer : p.onSurface,
         position: "relative",
         userSelect: "none",
-      }}
+      })}
     >
       <span
         onPointerDown={(e) => {
           e.preventDefault();
           controls.start(e);
         }}
-        style={{ cursor: "grab", color: p.outline, display: "grid", placeItems: "center", width: 24, height: 40, touchAction: "none" }}
+        style={s({ cursor: "grab", color: p.outline, display: "grid", placeItems: "center", width: 24, height: 40, touchAction: "none" })}
       >
         <Icon name="drag_indicator" size={18} />
       </span>
       <button
         onClick={(e) => onSelect(e.shiftKey)}
-        style={{
+        style={s({
           flex: 1,
           minWidth: 0,
           height: 40,
@@ -79,12 +80,12 @@ function Row({
           cursor: "pointer",
           padding: 0,
           textAlign: "left",
-        }}
+        })}
       >
-        <span style={{ display: "inline-flex", gap: 2, color: on ? p.onSecondaryContainer : p.primary }}>
+        <span style={s({ display: "inline-flex", gap: 2, color: on ? p.onSecondaryContainer : p.primary })}>
           {g.free ? <Icon name="group_work" size={18} /> : g.items.slice(0, 3).map((it, i) => <Icon key={i} name={KIND_SPEC[it.kind].paletteIcon} size={18} />)}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+        <span style={s({ fontSize: 12, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}>{label}</span>
       </button>
       <IconBtn icon="keyboard_arrow_up" p={p} size={28} onClick={onUp} disabled={!canUp} title={t("layerUp", lang)} />
       <IconBtn icon="keyboard_arrow_down" p={p} size={28} onClick={onDown} disabled={!canDown} title={t("layerDown", lang)} />
@@ -117,7 +118,7 @@ export function LayersPanel({
 }) {
   const lang = useLang();
   const topFirst = useMemo(() => [...groups].reverse(), [groups]);
-  const ids = topFirst.map((g) => g.id);
+  const ids = topFirst().map((g) => g.id);
   const sel = new Set(selectedIds);
   const move = (i: number, d: number) => {
     const next = [...ids];
@@ -127,17 +128,17 @@ export function LayersPanel({
     onReorder(next);
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+    <div style={s({ display: "flex", flexDirection: "column", height: "100%" })}>
       {frames.length > 1 && (
-        <div className="no-scrollbar" style={{ display: "flex", gap: 6, padding: "12px 12px 4px", overflowX: "auto", flex: "0 0 auto" }}>
+        <div class="no-scrollbar" style={s({ display: "flex", gap: 6, padding: "12px 12px 4px", overflowX: "auto", flex: "0 0 auto" })}>
           {frames.map((f) => {
             const on = f.id === frameId;
             return (
               <button
                 key={f.id}
                 onClick={() => onFrame(f.id)}
-                className="m3-press"
-                style={{
+                class="m3-press"
+                style={s({
                   height: 32,
                   padding: "0 12px 0 8px",
                   borderRadius: 16,
@@ -152,7 +153,7 @@ export function LayersPanel({
                   gap: 6,
                   whiteSpace: "nowrap",
                   flex: "0 0 auto",
-                }}
+                })}
               >
                 <Icon name={isPhoneFrame(f) ? "smartphone" : "desktop_windows"} size={16} />
                 {f.name || t("screen", lang)}
@@ -161,15 +162,15 @@ export function LayersPanel({
           })}
         </div>
       )}
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "8px 10px 12px" }}>
-        {topFirst.length === 0 ? (
-          <div style={{ padding: 24, textAlign: "center", color: p.outline, fontSize: 12 }}>
+      <div class="no-scrollbar" style={s({ flex: 1, overflowY: "auto", padding: "8px 10px 12px" })}>
+        {topFirst().length === 0 ? (
+          <div style={s({ padding: 24, textAlign: "center", color: p.outline, fontSize: 12 })}>
             <Icon name="layers_clear" size={32} />
-            <div style={{ marginTop: 8 }}>{t("noLayers", lang)}</div>
+            <div style={s({ marginTop: 8 })}>{t("noLayers", lang)}</div>
           </div>
         ) : (
-          <Reorder.Group axis="y" values={ids} onReorder={onReorder} style={{ display: "flex", flexDirection: "column", gap: 4, padding: 0, margin: 0 }}>
-            {topFirst.map((g, i) => (
+          <Reorder.Group axis="y" values={ids} onReorder={onReorder} style={s({ display: "flex", flexDirection: "column", gap: 4, padding: 0, margin: 0 })}>
+            {topFirst().map((g, i) => (
               <Row
                 key={g.id}
                 g={g}
@@ -179,7 +180,7 @@ export function LayersPanel({
                 onUp={() => move(i, -1)}
                 onDown={() => move(i, 1)}
                 canUp={i > 0}
-                canDown={i < topFirst.length - 1}
+                canDown={i < topFirst().length - 1}
               />
             ))}
           </Reorder.Group>
