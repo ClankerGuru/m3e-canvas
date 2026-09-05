@@ -231,25 +231,25 @@ export default function Page() {
   const gestureRef = useRef<Gesture | null>(null);
   const pendingRef = useRef<{ timer: number; commit: () => void } | null>(null);
   const groupsRef = useRef(groups);
-  groupsRef.current = groups;
+  groupsRef.current = groups();
   const framesRef = useRef(frames);
-  framesRef.current = frames;
+  framesRef.current = frames();
   const widthsRef = useRef(widths);
-  widthsRef.current = widths;
+  widthsRef.current = widths();
   const viewRef = useRef(view);
-  viewRef.current = view;
+  viewRef.current = view();
   const leftOpenRef = useRef(leftOpen);
-  leftOpenRef.current = leftOpen;
+  leftOpenRef.current = leftOpen();
   const leftWRef = useRef(leftW);
-  leftWRef.current = leftW;
+  leftWRef.current = leftW();
   const modeRef = useRef(mode);
-  modeRef.current = mode;
+  modeRef.current = mode();
   const spaceRef = useRef(spaceHeld);
-  spaceRef.current = spaceHeld;
+  spaceRef.current = spaceHeld();
   const frameRef = useRef(frame);
-  frameRef.current = frame;
+  frameRef.current = frame();
   const mobileRef = useRef(isMobile);
-  mobileRef.current = isMobile;
+  mobileRef.current = isMobile();
   /** active touch points, for pinch zoom */
   const touchesRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<{
@@ -469,7 +469,7 @@ export default function Page() {
   /* ---------- measurement (text-sized kinds) ---------- */
   const allItems = useMemo(() => {
     const map = new Map<string, Item>();
-    for (const g of groups) for (const it of g.items) map.set(it.id, it);
+    for (const g of groups()) for (const it of g.items) map.set(it.id, it);
     if (drag()) map.set(drag().item.id, drag().item);
     return [...map.values()];
   }, [groups, drag]);
@@ -1288,11 +1288,11 @@ export default function Page() {
   /* ---------- editing ---------- */
   const primaryId = selectedIds()[selectedIds().length - 1] ?? null;
   const selected = useMemo(() => {
-    for (const g of groups) {
+    for (const g of groups()) {
       const it = g.items.find((i) => i.id === primaryId);
       if (it) return it;
     }
-    return drag?.item.id === primaryId ? (drag?.item ?? null) : null;
+    return drag()?.item.id === primaryId ? (drag()?.item ?? null) : null;
   }, [groups, primaryId, drag]);
 
   useEffect(() => {
@@ -1552,9 +1552,7 @@ export default function Page() {
     setSelectedFrameId(null);
     setSelectedLinkId(null);
     setWidths({});
-    pastRef.current = [];
-    futureRef.current = [];
-    lastPatchRef.current = { key: "", at: 0 };
+    history.clear();
     bumpHistory((v) => v + 1);
     queueMicrotask(() => fitRef.current());
   };
@@ -1750,7 +1748,7 @@ export default function Page() {
     saveAiSettings(s);
   };
 
-  const aiReady = hasKey(aiSettings) && aiSettings().model.trim().length > 0 && isSecureUrl(aiSettings().baseUrl);
+  const aiReady = hasKey(aiSettings()) && aiSettings().model.trim().length > 0 && isSecureUrl(aiSettings().baseUrl);
   const aiReason = !aiReady ? t("aiNoKey", lang) : !tidyTarget() ? t("aiSelectScreen", lang) : undefined;
 
   /** Writes one field with the model: a part's behavior note, or a screen's description.
@@ -2123,10 +2121,22 @@ export default function Page() {
   openPreviewRef.current = openPreview;
 
   /* ---------- render ---------- */
-  const dragSize = drag ? sizeOf(drag().item, widths) : { w: 0, h: 0 };
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const dragSize = drag() ? sizeOf(drag().item, widths()) : { w: 0, h: 0 };
+  const selectedSet = useMemo(() => new Set(selectedIds()), [selectedIds]);
   const doc: Doc = useMemo(
-    () => ({ groups, frames, paletteKey, frame, title, brief, promptEdit, platform: platform ?? undefined, customPalette: customPalette ?? undefined, dynamicColor, theme }),
+    () => ({
+      groups: groups(),
+      frames: frames(),
+      paletteKey: paletteKey(),
+      frame: frame(),
+      title: title(),
+      brief: brief(),
+      promptEdit: promptEdit(),
+      platform: platform() ?? undefined,
+      customPalette: customPalette() ?? undefined,
+      dynamicColor: dynamicColor(),
+      theme: theme(),
+    }),
     [groups, frames, paletteKey, frame, title, brief, promptEdit, platform, customPalette, dynamicColor, theme],
   );
 
@@ -2144,7 +2154,7 @@ export default function Page() {
       ang: number;
       t: Transition;
     }[] = [];
-    for (const g of groups) {
+    for (const g of groups()) {
       for (const it of g.items) {
         for (const { slot, action } of actionsOf(it)) {
         if (action.to === BACK_TARGET) continue;
@@ -2233,7 +2243,7 @@ export default function Page() {
   const frameOf = useMemo(() => {
     const m = new Map<string, string>();
     if (frame() !== "phone") return m;
-    for (const g of groups) {
+    for (const g of groups()) {
       const f = frameOfGroup(g, frames, widths);
       if (f) m.set(g.id, f.id);
     }
@@ -2310,7 +2320,7 @@ export default function Page() {
         </motion.div>
       );
     }
-    const snap = drag?.active && drag().snap?.groupId === g.id ? drag().snap : null;
+    const snap = drag()?.active && drag().snap?.groupId === g.id ? drag().snap : null;
     const pull = snap?.pull ?? 0;
     const phMain = snap ? (g.axis === "x" ? dragSize.w : dragSize.h) * pull : 0;
     const shift = snap && snap.index === 0 ? -(phMain + GAP) : 0;
@@ -2410,7 +2420,7 @@ export default function Page() {
   };
 
   const showRight = rightOpen && !isMobile();
-  const guide = drag?.active ? drag().guide : null;
+  const guide = drag()?.active ? drag().guide : null;
   const visibleWorld = (() => {
     const r = canvasRef.current?.getBoundingClientRect();
     return {
@@ -2447,7 +2457,7 @@ export default function Page() {
             fontFamily: fontFamilyOf(theme().font),
           })}
         >
-          {allItems
+          {allItems()
             .filter((it) => MEASURED.includes(it.kind))
             .map((it) => (
               <div
@@ -2757,7 +2767,7 @@ export default function Page() {
                 .map((g) => renderGroup(g, 0, 0))}
 
               {/* the part in flight */}
-              {drag?.active && (
+              {drag()?.active && (
                 <motion.div
                   style={s({
                     position: "absolute",
@@ -2865,8 +2875,8 @@ export default function Page() {
                 </svg>
               )}
 
-              {links
-                .filter((l) => l.id === selectedLinkId)
+              {links()
+                .filter((l) => l.id === selectedLinkId())
                 .map((l) => (
                   <div
                     key={l.id}
@@ -2964,8 +2974,8 @@ export default function Page() {
             zoom={view().z}
             onZoom={(z) => setZoomAt(z)}
             onFit={fit}
-            canUndo={pastRef.current.length > 0}
-            canRedo={futureRef.current.length > 0}
+            canUndo={history.canUndo}
+            canRedo={history.canRedo}
             onUndo={undo}
             onRedo={redo}
             onClear={() => {
@@ -3163,37 +3173,37 @@ export default function Page() {
               />
             </div>
             <div style={s({ flex: 1, minHeight: 0 })}>
-              {rightTab() === "edit" && selectedFrame && !selected() ? (
+              {rightTab() === "edit" && selectedFrame() && !selected() ? (
                 <FrameInspector
                   frame={selectedFrame()}
-                  palette={p}
+                  palette={p()}
                   onSize={(preset) => setFramePreset(selectedFrame().id, preset)}
                   onChange={(patch) => patchFrame(selectedFrame().id, patch)}
                   onDelete={() => deleteFrame(selectedFrame().id)}
                   onDuplicate={() => duplicateFrame(selectedFrame().id)}
                   onPreview={() => openPreview(selectedFrame().id)}
-                  prompt={buildPrompt(doc, widths, selectedFrame().id, lang)}
-                  onSaveImage={() => saveFrameImage(selectedFrame)}
+                  prompt={buildPrompt(doc(), widths(), selectedFrame().id, lang())}
+                  onSaveImage={() => saveFrameImage(selectedFrame())}
                   frames={frames()}
                   tidy={tidyState() ?? "done"}
-                  onTidy={() => tidy(selectedFrame)}
-                  ai={{ ready: aiReady, reason: aiReason, busy: aiBusy && aiFrameId() === selectedFrame().id, onRun: () => runAi("describe", selectedFrame), onCancel: cancelAi }}
+                  onTidy={() => tidy(selectedFrame())}
+                  ai={{ ready: aiReady, reason: aiReason, busy: aiBusy() && aiFrameId() === selectedFrame().id, onRun: () => runAi("describe", selectedFrame()), onCancel: cancelAi }}
                 />
               ) : rightTab() === "edit" ? (
                 <Inspector
                   ai={{
                     ready: aiReady && !!tidyTarget(),
                     reason: aiReason,
-                    busy: aiBusy,
+                    busy: aiBusy(),
                     onRun: () => {
-                      if (tidyTarget() && selected) runAi("behavior", tidyTarget, selected().id);
+                      if (tidyTarget() && selected()) runAi("behavior", tidyTarget(), selected().id);
                     },
                     onCancel: cancelAi,
                   }}
-                  item={selectedIds().length > 1 ? null : selected}
+                  item={selectedIds().length > 1 ? null : selected()}
                   frame={selectedPartFrame()}
-                  palette={p}
-                  frames={frame() === "phone" ? frames : []}
+                  palette={p()}
+                  frames={frame() === "phone" ? frames() : []}
                   onChange={patchSelected}
                   onDelete={deleteSelected}
                   onDuplicate={duplicateSelected}
@@ -3204,7 +3214,7 @@ export default function Page() {
                 />
               ) : (
                 <PromptPanel
-                  doc={doc}
+                  doc={doc()}
                   widths={widths()}
                   palette={p}
                   onDoc={(patch) => {

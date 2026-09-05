@@ -793,7 +793,7 @@ export function ConfirmDialog({
 }) {
   const lang = useLang();
   useEffect(() => {
-    if (!open()) return;
+    if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
@@ -828,7 +828,7 @@ export function ConfirmDialog({
   );
   return (
     <AnimatePresence>
-      {open() && (
+      {open && (
         <motion.div
           key="scrim"
           initial={{ opacity: 0 }}
