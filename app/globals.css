@@ -3,13 +3,17 @@
 html,
 body {
   height: 100%;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 /* in-app browsers (X, Instagram, LINE) may not know dvh; fall back to vh
-   and let JS override with the measured visual viewport when available */
+   and let JS override with the measured inner height when available */
 .app-root {
   height: 100vh;
   height: 100dvh;
   height: var(--app-h, 100dvh);
+  overflow: hidden;
 }
 body {
   background: #ffffff;

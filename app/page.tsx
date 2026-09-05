@@ -59,26 +59,46 @@ const RAIL_W = 52;
 const MIN_Z = 0.25;
 const MAX_Z = 3;
 
-/** Phone / in-app browser: don't trust matchMedia alone (X's webview often
- *  reports a desktop width or pointer:fine, which used to draw the desktop
- *  chrome on a 390px screen). */
+/** CSS-pixel width. Some Android webviews report screen.width in device pixels. */
+function cssScreenWidth(): number {
+  const sw = window.screen?.width ?? 0;
+  const dpr = window.devicePixelRatio || 1;
+  if (sw >= 600 && dpr > 1) {
+    const css = sw / dpr;
+    if (css >= 240 && css <= 600) return css;
+  }
+  return sw;
+}
+
+/** Phone / in-app browser. MatchMedia alone is not enough: X's webview
+ *  often reports a desktop width or pointer:fine. Use the smallest of the
+ *  layout, visual, and screen widths, plus UA / touch. */
 function phoneViewport(): boolean {
   if (typeof window === "undefined") return false;
-  const w = window.visualViewport?.width ?? window.innerWidth;
+  const widths = [window.innerWidth, document.documentElement?.clientWidth ?? 0];
+  if (window.visualViewport?.width) widths.push(window.visualViewport.width);
+  const css = cssScreenWidth();
+  if (css) widths.push(css);
+  if (window.screen?.availWidth) widths.push(window.screen.availWidth);
+  const w = Math.min(...widths.filter((n) => n > 0));
   const ua = navigator.userAgent || "";
-  const phoneUA = /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-  const inApp =
-    /Twitter|Instagram|FBAN|FBAV|Line\//i.test(ua) ||
-    (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) ||
-    (/Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua));
-  if (w <= 840) return true;
-  if (phoneUA) return true;
-  if (inApp && w <= 1200) return true;
+  const ch = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
+  if (ch?.mobile) return true;
+  if (w <= 900) return true;
+  if ((navigator.maxTouchPoints ?? 0) > 1 && w <= 1280) return true;
+  if ("ontouchstart" in window && w <= 1024) return true;
+  if (/iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+  if (/Twitter|TwitterAndroid|Instagram|FBAN|FBAV|Line\/|(?:^|[^A-Za-z])X\//i.test(ua)) return true;
+  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return true;
+  if (/Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua)) return true;
   try {
-    return window.matchMedia("(max-width: 840px), (pointer: coarse) and (max-width: 1024px)").matches;
+    if (window.matchMedia("(max-width: 840px)").matches) return true;
+    if (window.matchMedia("(pointer: coarse) and (max-width: 1024px)").matches) return true;
+    if (window.matchMedia("(hover: none) and (pointer: coarse)").matches && w <= 1280) return true;
   } catch {
     return w <= 1024;
   }
+  return false;
 }
 
 type View = { x: number; y: number; z: number };
@@ -180,8 +200,8 @@ const LEFT_TABS: { key: LeftTab; icon: string; title: "parts" | "layers" | "colo
 
 export default function Page() {
   /* ---------- document ---------- */
-  const [groups, setGroups] = useState<Group[]>(seed);
-  const [frames, setFrames] = useState<Frame[]>(SEED_FRAMES);
+  const [groups, setGroups] = useState<Group[]>(() => (phoneViewport() ? mobileSeed() : seed()));
+  const [frames, setFrames] = useState<Frame[]>(() => (phoneViewport() ? [mobileHomeFrame()] : SEED_FRAMES));
   const [paletteKey, setPaletteKey] = useState("purple");
   const [customPalette, setCustomPalette] = useState<Palette | null>(null);
   const [dynamicColor, setDynamicColor] = useState(false);
@@ -213,8 +233,8 @@ export default function Page() {
   const [cameraEasing, setCameraEasing] = useState(false);
   const [mode, setMode] = useState<Mode>("select");
   const [spaceHeld, setSpaceHeld] = useState(false);
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(() => !phoneViewport());
+  const [rightOpen, setRightOpen] = useState(() => !phoneViewport());
   const [leftW, setLeftW] = useState(RAIL_W + 268);
   const [leftTab, setLeftTab] = useState<LeftTab>("parts");
   /** pointer over the collapsed rail: the logo becomes the open button */
@@ -385,10 +405,7 @@ export default function Page() {
       if (nl.startsWith("zh")) setLang("zh");
       else if (!nl.startsWith("ja")) setLang("en");
     }
-    queueMicrotask(() => {
-      fitRef.current();
-      setViewReady(true);
-    });
+    queueMicrotask(() => fitRef.current({ reveal: true }));
     setAiSettings(loadAiSettings());
     loadedRef.current = true;
   }, []);
@@ -424,7 +441,7 @@ export default function Page() {
     const ua = navigator.userAgent;
     const iosWebView = /iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua);
     const androidWebView = /Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua);
-    if (iosWebView || androidWebView || /Twitter|Instagram|FBAN|FBAV|Line\//i.test(ua)) {
+    if (iosWebView || androidWebView || /Twitter|TwitterAndroid|Instagram|FBAN|FBAV|Line\/|(?:^|[^A-Za-z])X\//i.test(ua)) {
       document.documentElement.style.setProperty("--bottom-ui", "64px");
     }
     apply();
@@ -436,42 +453,40 @@ export default function Page() {
     };
   }, []);
 
-  /* everyone works on phone screens; a phone gets one fixed screen and the select tool only */
+  /* Phone chrome is decided once, then only on a real breakpoint or rotate.
+     Do not listen to visualViewport or window resize: the URL bar showing
+     and hiding used to re-fit the board on every tick, which is the jump. */
   onMount(() => {
-    const apply = () => {
+    const applyChrome = (opts?: { forceFit?: boolean }) => {
       const m = phoneViewport();
-      setIsMobile(m);
-      mobileRef.current = m;
-      if (m) {
-        setMode("select");
-        setSheet(null);
-        setLeftOpen(false);
-        setRightOpen(false);
-        if (!hadDocRef.current) {
-          hadDocRef.current = true;
-          setGroups(mobileSeed());
-          setFrames([mobileHomeFrame()]);
+      const changed = m !== mobileRef.current;
+      if (changed) {
+        setIsMobile(m);
+        mobileRef.current = m;
+        if (m) {
+          setMode("select");
+          setLeftOpen(false);
+          setRightOpen(false);
+          if (frameRef.current !== "phone") {
+            setFrame("phone");
+            frameRef.current = "phone";
+            ensureFrameRef.current();
+          }
         }
       }
-      if (frameRef.current !== "phone") {
-        setFrame("phone");
-        frameRef.current = "phone";
+      if (changed || opts?.forceFit) {
+        queueMicrotask(() => fitRef.current({ reveal: true }));
       }
-      ensureFrameRef.current();
-      queueMicrotask(() => {
-        fitRef.current();
-        setViewReady(true);
-      });
     };
-    apply();
+    applyChrome({ forceFit: true });
     const mq = window.matchMedia("(max-width: 840px), (pointer: coarse) and (max-width: 1024px)");
-    mq.addEventListener("change", apply);
-    window.addEventListener("resize", apply);
-    window.visualViewport?.addEventListener("resize", apply);
+    const onMq = () => applyChrome();
+    const onOrient = () => applyChrome({ forceFit: true });
+    mq.addEventListener("change", onMq);
+    window.addEventListener("orientationchange", onOrient);
     onCleanup(() => {
-      mq.removeEventListener("change", apply);
-      window.removeEventListener("resize", apply);
-      window.visualViewport?.removeEventListener("resize", apply);
+      mq.removeEventListener("change", onMq);
+      window.removeEventListener("orientationchange", onOrient);
     });
   });
 
@@ -567,63 +582,79 @@ export default function Page() {
     });
   }, []);
 
-  const fit = useCallback(() => {
-    const r = canvasRect();
-    if (!r) return;
-    const gs = groupsRef.current;
-    let x0 = -BEZEL;
-    let y0 = -BEZEL - FRAME_LABEL_H;
-    let x1 = PHONE_W + BEZEL;
-    let y1 = PHONE_H + BEZEL;
-    const fs = framesRef.current;
-    if (frameRef.current === "phone" && fs.length > 0) {
-      x0 = Math.min(...fs.map((f) => f.x)) - BEZEL;
-      y0 = Math.min(...fs.map((f) => f.y)) - BEZEL - FRAME_LABEL_H;
-      x1 = Math.max(...fs.map((f) => frameRect(f).r)) + BEZEL;
-      y1 = Math.max(...fs.map((f) => frameRect(f).b)) + BEZEL;
-    }
-    if (frameRef.current === "blank") {
-      if (gs.length === 0) {
-        setView({ x: 48, y: 48, z: 1 });
+  const fitGen = useRef(0);
+  const fit = useCallback((opts?: { reveal?: boolean }) => {
+    const reveal = !!opts && typeof opts === "object" && opts.reveal === true;
+    const gen = ++fitGen.current;
+    const applyView = (next: View) => {
+      if (gen !== fitGen.current) return;
+      setView(next);
+      if (reveal) setViewReady(true);
+    };
+    const go = (tries: number) => {
+      if (gen !== fitGen.current) return;
+      const r = canvasRect();
+      if (!r || r.width < 64 || r.height < 64) {
+        if (tries < 90) requestAnimationFrame(() => go(tries + 1));
+        else if (reveal) setViewReady(true);
         return;
       }
-      x0 = Infinity;
-      y0 = Infinity;
-      x1 = -Infinity;
-      y1 = -Infinity;
-      for (const g of gs) {
-        for (const pl of layoutOf(g, widthsRef.current)) {
-          x0 = Math.min(x0, pl.x);
-          y0 = Math.min(y0, pl.y);
-          x1 = Math.max(x1, pl.x + pl.w);
-          y1 = Math.max(y1, pl.y + pl.h);
+      const gs = groupsRef.current;
+      let x0 = -BEZEL;
+      let y0 = -BEZEL - FRAME_LABEL_H;
+      let x1 = PHONE_W + BEZEL;
+      let y1 = PHONE_H + BEZEL;
+      const fs = framesRef.current;
+      if (frameRef.current === "phone" && fs.length > 0) {
+        x0 = Math.min(...fs.map((f) => f.x)) - BEZEL;
+        y0 = Math.min(...fs.map((f) => f.y)) - BEZEL - FRAME_LABEL_H;
+        x1 = Math.max(...fs.map((f) => frameRect(f).r)) + BEZEL;
+        y1 = Math.max(...fs.map((f) => frameRect(f).b)) + BEZEL;
+      }
+      if (frameRef.current === "blank") {
+        if (gs.length === 0) {
+          applyView({ x: 48, y: 48, z: 1 });
+          return;
+        }
+        x0 = Infinity;
+        y0 = Infinity;
+        x1 = -Infinity;
+        y1 = -Infinity;
+        for (const g of gs) {
+          for (const pl of layoutOf(g, widthsRef.current)) {
+            x0 = Math.min(x0, pl.x);
+            y0 = Math.min(y0, pl.y);
+            x1 = Math.max(x1, pl.x + pl.w);
+            y1 = Math.max(y1, pl.y + pl.h);
+          }
         }
       }
-    }
-    const mobile = mobileRef.current;
-    const pad = mobile ? 14 : 40;
-    const top = mobile ? 96 : 84; // keep the floating toolbar clear of the frame
-    const bottom = mobile ? 96 : pad;
-    if (mobile) {
-      // a phone zooms to the screen's width and starts at its top; the rest scrolls
-      const z = clamp((r.width - pad * 2) / (x1 - x0), MIN_Z, MAX_Z);
-      setView({ x: (r.width - (x1 - x0) * z) / 2 - x0 * z, y: top - y0 * z, z });
-      return;
-    }
-    const z = clamp(
-      Math.min(
-        (r.width - pad * 2) / (x1 - x0),
-        (r.height - top - bottom) / (y1 - y0),
-        1,
-      ),
-      MIN_Z,
-      MAX_Z,
-    );
-    setView({
-      x: (r.width - (x1 - x0) * z) / 2 - x0 * z,
-      y: top + (r.height - top - bottom - (y1 - y0) * z) / 2 - y0 * z,
-      z,
-    });
+      const mobile = mobileRef.current;
+      const pad = mobile ? 14 : 40;
+      const top = mobile ? 96 : 84; // keep the floating toolbar clear of the frame
+      const bottom = mobile ? 96 : pad;
+      if (mobile) {
+        // a phone zooms to the screen's width and starts at its top; the rest scrolls
+        const z = clamp((r.width - pad * 2) / (x1 - x0), MIN_Z, MAX_Z);
+        applyView({ x: (r.width - (x1 - x0) * z) / 2 - x0 * z, y: top - y0 * z, z });
+        return;
+      }
+      const z = clamp(
+        Math.min(
+          (r.width - pad * 2) / (x1 - x0),
+          (r.height - top - bottom) / (y1 - y0),
+          1,
+        ),
+        MIN_Z,
+        MAX_Z,
+      );
+      applyView({
+        x: (r.width - (x1 - x0) * z) / 2 - x0 * z,
+        y: top + (r.height - top - bottom - (y1 - y0) * z) / 2 - y0 * z,
+        z,
+      });
+    };
+    go(0);
   }, []);
   const fitRef = useRef(fit);
   fitRef.current = fit;
