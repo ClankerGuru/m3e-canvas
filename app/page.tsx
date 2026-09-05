@@ -24,6 +24,10 @@ import { DEFAULT_AI, hasKey, isSecureUrl, loadAiSettings, proposeBehavior, propo
 import type { AiSettings } from "@/lib/ai";
 import { barSlotOf, carryFrame, pullInto, tidyFrame } from "@/lib/tidy";
 import { readProject, saveProject } from "@/lib/project";
+import { SEED_FRAMES, hydrateDoc, mobileHomeFrame, mobileSeed, seed } from "@/lib/board";
+import { createHistory } from "@/lib/history";
+import type { Snapshot } from "@/lib/history";
+import { readStoredDoc, readStoredUi, writeStoredDoc, writeStoredUi } from "@/lib/persist";
 import { ColorPanel } from "@/components/ColorPanel";
 import { MotionPanel, ShapePanel, TypePanel } from "@/components/ThemePanel";
 import { ThemeContext, ensureFontLoaded } from "@/lib/theme";
@@ -52,9 +56,6 @@ const INSTANT = { duration: 0 };
 const RAIL_W = 52;
 const MIN_Z = 0.25;
 const MAX_Z = 3;
-const HISTORY_MAX = 100;
-const DOC_KEY = "m3e:doc";
-const UI_KEY = "m3e:ui";
 
 type View = { x: number; y: number; z: number };
 type Snap = { groupId: string; index: number; pull: number };
@@ -102,82 +103,8 @@ type Gesture =
     }
   | { kind: "group"; id: string; sx: number; sy: number; gx: number; gy: number; moved: boolean; overBin: boolean };
 
-type Snapshot = { groups: Group[]; frames: Frame[] };
-
 /** a screen changing size eases the way a settling part does */
 const SIZE_TRANSITION = `width ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1), height ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1), border-radius ${SETTLE_MS}ms cubic-bezier(0.2, 0, 0, 1)`;
-
-const SEED_FRAMES: Frame[] = [{ id: "seedF1", name: "Home", x: 0, y: 0 }];
-
-/** Documents saved before the bars grew their system insets have the navigation
- *  bar flush with the old 80dp bottom; keep it on the bottom edge. */
-function migrateGroups(groups: Group[], frames: Frame[]): Group[] {
-  const oldNavH = KIND_SPEC.bottomNav.h - NAV_BAR_H;
-  return groups().map((g) => {
-    if (g.items.length !== 1 || g.items[0].kind !== "bottomNav") return g;
-    const f = frames().find((fr) => {
-      const r = frameRect(fr);
-      return g.x >= r.l - 1 && g.x <= r.r && g.y === r.b - oldNavH;
-    });
-    return f ? { ...g, y: frameRect(f).b - KIND_SPEC.bottomNav.h } : g;
-  });
-}
-
-/** Seed ids are deterministic so server and client render the same markup. */
-const seed = (): Group[] => {
-  let n = 0;
-  const sid = () => `seed${++n}`;
-  const mk = (k: Kind) => ({ ...makeItem(k), id: sid() });
-  const bar = mk("topAppBar");
-  const a = mk("button");
-  const b = mk("button");
-  a.label = "お気に入り";
-  a.icon = "star";
-  b.label = "共有";
-  b.icon = "share";
-  b.variant = "tonal";
-  const rows = ["受信トレイ", "スター付き", "アーカイブ"].map((t, i) => {
-    const it = mk("listItem");
-    it.label = t;
-    it.icon = ["inbox", "star", "archive"][i];
-    it.supporting = "サブテキスト";
-    return it;
-  });
-  const nav = mk("bottomNav");
-  const fab = mk("fab");
-  return [
-    { id: sid(), x: 0, y: 0, axis: "x", items: [bar] },
-    { id: sid(), x: PHONE_MARGIN, y: 96, axis: "x", items: [a, b] },
-    { id: sid(), x: PHONE_MARGIN, y: 184, axis: "y", items: rows },
-    {
-      id: sid(),
-      x: PHONE_W - 56 - PHONE_MARGIN,
-      y: PHONE_H - KIND_SPEC.bottomNav.h - 56 - PHONE_MARGIN,
-      axis: "x",
-      items: [fab],
-    },
-    { id: sid(), x: 0, y: PHONE_H - KIND_SPEC.bottomNav.h, axis: "x", items: [nav] },
-  ];
-};
-
-/** The phone version starts with buttons only: that is all it edits. */
-const mobileSeed = (): Group[] => {
-  const mk = (k: Kind) => makeItem(k);
-  const a = mk("button");
-  const b = mk("button");
-  const c = mk("button");
-  a.label = "お気に入り";
-  a.icon = "star";
-  b.label = "共有";
-  b.icon = "share";
-  b.variant = "tonal";
-  c.label = "はじめる";
-  c.icon = "arrow_forward";
-  return [
-    { id: uid(), x: PHONE_MARGIN, y: 120, axis: "x", items: [a, b] },
-    { id: uid(), x: PHONE_MARGIN, y: 200, axis: "x", items: [c] },
-  ];
-};
 
 /** While the model works on a screen, the scheme's colors drift through its bezel. */
 function ThinkingRing({ p, frame }: { p: Palette; frame: Frame }) {
@@ -340,30 +267,22 @@ export default function Page() {
   const hadDocRef = useRef(false);
 
   /* ---------- history ---------- */
-  const pastRef = useRef<Snapshot[]>([]);
-  const futureRef = useRef<Snapshot[]>([]);
-  const lastPatchRef = useRef<{ key: string; at: number }>({ key: "", at: 0 });
+  const history = createHistory();
+
+  const currentSnap = (): Snapshot => ({
+    groups: typeof groupsRef.current === "function" ? groupsRef.current() : groupsRef.current,
+    frames: typeof framesRef.current === "function" ? framesRef.current() : framesRef.current,
+  });
 
   const snapshot = useCallback(() => {
-    pastRef.current.push({
-      groups: groupsRef.current,
-      frames: framesRef.current,
-    });
-    if (pastRef.current.length > HISTORY_MAX) pastRef.current.shift();
-    futureRef.current = [];
+    history.push(currentSnap());
     bumpHistory((v) => v + 1);
   }, []);
 
   /** consecutive edits of the same field collapse into one undo step */
-  const snapshotFor = useCallback(
-    (key: string) => {
-      const now = Date.now();
-      const last = lastPatchRef.current;
-      if (last.key !== key || now - last.at > 800) snapshot();
-      lastPatchRef.current = { key, at: now };
-    },
-    [snapshot],
-  );
+  const snapshotFor = useCallback((key: string) => {
+    history.pushFor(key, currentSnap());
+  }, []);
 
   const restore = (snap: Snapshot) => {
     for (const g of snap.groups) instantRef.current.add(g.id);
@@ -373,23 +292,13 @@ export default function Page() {
   };
 
   const undo = useCallback(() => {
-    const prev = pastRef.current.pop();
-    if (!prev) return;
-    futureRef.current.push({
-      groups: groupsRef.current,
-      frames: framesRef.current,
-    });
-    restore(prev);
+    const prev = history.undo(currentSnap());
+    if (prev) restore(prev);
   }, []);
 
   const redo = useCallback(() => {
-    const next = futureRef.current.pop();
-    if (!next) return;
-    pastRef.current.push({
-      groups: groupsRef.current,
-      frames: framesRef.current,
-    });
-    restore(next);
+    const next = history.redo(currentSnap());
+    if (next) restore(next);
   }, []);
 
   useEffect(() => {
@@ -397,58 +306,58 @@ export default function Page() {
   });
 
   /* ---------- persistence ---------- */
-  /** Puts a stored or opened document into the editor. Fields a partial document
-   *  leaves out keep their current value, or go back to the default when `reset`. */
   const applyDoc = (doc: Partial<Doc>, reset: boolean) => {
-    const frames = Array.isArray(doc.frames) ? doc.frames : framesRef.current;
-    if (Array.isArray(doc.groups)) setGroups(migrateGroups(doc.groups, frames));
-    if (Array.isArray(doc.frames)) setFrames(doc.frames);
-    if (typeof doc.paletteKey() === "string" && doc.paletteKey) setPaletteKey(doc.paletteKey);
-    else if (reset) setPaletteKey("purple");
-    if (doc.customPalette && typeof doc.customPalette().primary === "string") setCustomPalette(doc.customPalette);
-    else if (reset) setCustomPalette(null);
-    if (typeof doc.dynamicColor() === "boolean") setDynamicColor(doc.dynamicColor);
-    else if (reset) setDynamicColor(false);
-    if (doc.theme && typeof doc.theme() === "object") setTheme(normalizeTheme(doc.theme));
-    else if (reset) setTheme(normalizeTheme(undefined));
-    if (typeof doc.title() === "string") setTitle(doc.title);
-    else if (reset) setTitle("");
-    if (typeof doc.brief() === "string") setBrief(doc.brief);
-    else if (reset) setBrief("");
-    if (typeof doc.promptEdit() === "string") setPromptEdit(doc.promptEdit);
-    else if (reset) setPromptEdit(undefined);
-    if (isPlatform(doc.platform)) setPlatform(doc.platform);
-    else if (reset) setPlatform(null);
+    const next = hydrateDoc(
+      doc,
+      {
+        groups: groups(),
+        frames: frames(),
+        paletteKey: paletteKey(),
+        customPalette: customPalette(),
+        dynamicColor: dynamicColor(),
+        theme: theme(),
+        title: title(),
+        brief: brief(),
+        promptEdit: promptEdit(),
+        platform: platform(),
+      },
+      reset,
+    );
+    setGroups(next.groups);
+    setFrames(next.frames);
+    setPaletteKey(next.paletteKey);
+    setCustomPalette(next.customPalette);
+    setDynamicColor(next.dynamicColor);
+    setTheme(next.theme);
+    setTitle(next.title);
+    setBrief(next.brief);
+    setPromptEdit(next.promptEdit);
+    setPlatform(next.platform);
   };
 
   useEffect(() => {
-    // React's development double-run would otherwise read back its own first save
     if (loadedRef.current) return;
-    try {
-      const d = localStorage.getItem(DOC_KEY);
-      if (d) {
-        hadDocRef.current = true;
-        applyDoc(JSON.parse(d) as Partial<Doc>, false);
-        // frame mode is decided by the device (media-query effect), not restored
-      }
-      const u = localStorage.getItem(UI_KEY);
-      if (u) {
-        const ui = JSON.parse(u);
-        if (ui.view) setView(ui.view);
-        if (typeof ui.leftOpen() === "boolean") setLeftOpen(ui.leftOpen);
-        if (typeof ui.rightOpen() === "boolean") setRightOpen(ui.rightOpen);
-        if (ui.leftW) setLeftW(Math.max(RAIL_W + 244, ui.leftW));
-        if (ui.rightW) setRightW(ui.rightW);
-        if (Array.isArray(ui.favorites)) setFavorites(ui.favorites);
-        if (ui.mode) setMode(ui.mode);
-        if (isLang(ui.lang)) setLang(ui.lang);
-      } else {
-        const nl = (navigator.language ?? "").toLowerCase();
-        if (nl.startsWith("zh")) setLang("zh");
-        else if (!nl.startsWith("ja")) setLang("en");
-        queueMicrotask(() => fitRef.current());
-      }
-    } catch {}
+    const d = readStoredDoc();
+    if (d) {
+      hadDocRef.current = true;
+      applyDoc(d, false);
+    }
+    const ui = readStoredUi();
+    if (ui) {
+      if (ui.view) setView(ui.view);
+      if (typeof ui.leftOpen === "boolean") setLeftOpen(ui.leftOpen);
+      if (typeof ui.rightOpen === "boolean") setRightOpen(ui.rightOpen);
+      if (ui.leftW) setLeftW(Math.max(RAIL_W + 244, ui.leftW));
+      if (ui.rightW) setRightW(ui.rightW);
+      if (Array.isArray(ui.favorites)) setFavorites(ui.favorites);
+      if (ui.mode) setMode(ui.mode);
+      if (isLang(ui.lang)) setLang(ui.lang);
+    } else {
+      const nl = (navigator.language ?? "").toLowerCase();
+      if (nl.startsWith("zh")) setLang("zh");
+      else if (!nl.startsWith("ja")) setLang("en");
+      queueMicrotask(() => fitRef.current());
+    }
     setAiSettings(loadAiSettings());
     loadedRef.current = true;
   }, []);
@@ -511,7 +420,7 @@ export default function Page() {
         if (!hadDocRef.current) {
           hadDocRef.current = true;
           setGroups(mobileSeed());
-          setFrames([{ id: uid(), name: t("home"), x: 0, y: 0 }]);
+          setFrames([mobileHomeFrame()]);
         }
       }
       if (frameRef.current !== "phone") {
@@ -528,41 +437,34 @@ export default function Page() {
 
   useEffect(() => {
     if (!loadedRef.current) return;
-    try {
-      localStorage.setItem(
-        DOC_KEY,
-        JSON.stringify({ groups, frames, paletteKey, frame, title, brief, promptEdit, platform: platform ?? undefined, customPalette: customPalette ?? undefined, dynamicColor, theme }),
-      );
-    } catch {}
+    writeStoredDoc({
+      groups: groups(),
+      frames: frames(),
+      paletteKey: paletteKey(),
+      frame: frame(),
+      title: title(),
+      brief: brief(),
+      promptEdit: promptEdit(),
+      platform: platform() ?? undefined,
+      customPalette: customPalette() ?? undefined,
+      dynamicColor: dynamicColor(),
+      theme: theme(),
+    });
   }, [groups, frames, paletteKey, frame, title, brief, promptEdit, platform, customPalette, dynamicColor, theme]);
 
   useEffect(() => {
     if (!loadedRef.current) return;
-    try {
-      localStorage.setItem(
-        UI_KEY,
-        JSON.stringify({
-          view,
-          leftOpen,
-          rightOpen,
-          leftW,
-          rightW,
-          favorites,
-          mode,
-          lang,
-        }),
-      );
-    } catch {}
-  }, [
-    view,
-    leftOpen,
-    rightOpen,
-    leftW,
-    rightW,
-    favorites,
-    mode,
-    lang,
-  ]);
+    writeStoredUi({
+      view: view(),
+      leftOpen: leftOpen(),
+      rightOpen: rightOpen(),
+      leftW: leftW(),
+      rightW: rightW(),
+      favorites: favorites(),
+      mode: mode(),
+      lang: lang(),
+    });
+  }, [view, leftOpen, rightOpen, leftW, rightW, favorites, mode, lang]);
 
   /* ---------- measurement (text-sized kinds) ---------- */
   const allItems = useMemo(() => {
