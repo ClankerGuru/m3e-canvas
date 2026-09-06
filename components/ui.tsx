@@ -8,17 +8,7 @@ import { AnimatePresence, motion } from "@/lib/motion";
 import { t, useLang } from "@/lib/i18n";
 import { Icon } from "./M3Node";
 
-export function IconBtn({
-  icon,
-  on,
-  onClick,
-  title,
-  size = 36,
-  p,
-  danger,
-  disabled,
-  fill,
-}: {
+export function IconBtn(props: {
   icon: string;
   on?: boolean;
   onClick?: () => void;
@@ -29,33 +19,34 @@ export function IconBtn({
   disabled?: boolean;
   fill?: boolean;
 }) {
+  const size = () => props.size ?? 36;
   return (
     <button
-      onClick={onClick}
-      title={title}
-      aria-label={title}
-      disabled={disabled}
+      onClick={props.onClick}
+      title={props.title}
+      aria-label={props.title}
+      disabled={props.disabled}
       class="m3-press"
       style={s({
-        width: size,
-        height: size,
-        borderRadius: size / 2,
+        width: size(),
+        height: size(),
+        borderRadius: size() / 2,
         border: "none",
-        background: on ? (danger ? p.errorContainer : p.secondaryContainer) : "transparent",
-        color: disabled
-          ? p.outlineVariant
-          : danger
-            ? p.error
-            : on
-              ? p.onSecondaryContainer
-              : p.onSurfaceVariant,
-        cursor: disabled ? "default" : "pointer",
+        background: props.on ? (props.danger ? props.p.errorContainer : props.p.secondaryContainer) : "transparent",
+        color: props.disabled
+          ? props.p.outlineVariant
+          : props.danger
+            ? props.p.error
+            : props.on
+              ? props.p.onSecondaryContainer
+              : props.p.onSurfaceVariant,
+        cursor: props.disabled ? "default" : "pointer",
         display: "grid",
         placeItems: "center",
         flex: "0 0 auto",
       })}
     >
-      <Icon name={icon} size={Math.round(size * 0.58)} fill={fill ?? on} />
+      <Icon name={props.icon} size={Math.round(size() * 0.58)} fill={props.fill ?? props.on} />
     </button>
   );
 }
