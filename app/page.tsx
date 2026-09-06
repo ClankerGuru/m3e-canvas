@@ -264,7 +264,7 @@ export default function Page() {
   const [gesture, setGesture] = useState<Gesture | null>(null);
   const [widths, setWidths] = useState<Record<string, number>>({});
   const [resizing, setResizing] = useState<"left" | "right" | null>(null);
-  const [, bumpHistory] = useState(0);
+  const [historyTick, bumpHistory] = useState(0);
   /* ---------- tidy and ai ---------- */
   /** the groups before and after the last tidy; "undo" is offered only while the after-state is still current */
   const tidyRef = useRef<{ frameId: string; before: Group[]; after: Group[] } | null>(null);
@@ -321,6 +321,19 @@ export default function Page() {
   const mobileRef = useRef(isMobile);
   mobileRef.current = isMobile();
   draftBeforeRef.current = draftBefore();
+  useEffect(() => {
+    groupsRef.current = groups();
+    framesRef.current = frames();
+    widthsRef.current = widths();
+    viewRef.current = view();
+    leftOpenRef.current = leftOpen();
+    leftWRef.current = leftW();
+    modeRef.current = mode();
+    spaceRef.current = spaceHeld();
+    frameRef.current = frame();
+    mobileRef.current = isMobile();
+    draftBeforeRef.current = draftBefore();
+  });
   /** active touch points, for pinch zoom */
   const touchesRef = useRef<Map<number, { x: number; y: number }>>(new Map());
   const pinchRef = useRef<{
@@ -353,6 +366,7 @@ export default function Page() {
   /** consecutive edits of the same field collapse into one undo step */
   const snapshotFor = useCallback((key: string) => {
     history.pushFor(key, currentSnap());
+    bumpHistory((v) => v + 1);
   }, []);
 
   const restore = (snap: Snapshot) => {
@@ -1421,13 +1435,17 @@ export default function Page() {
   }, [resizing]);
 
   /* ---------- editing ---------- */
-  const primaryId = selectedIds()[selectedIds().length - 1] ?? null;
+  const primaryId = createMemo(() => {
+    const ids = selectedIds();
+    return ids[ids.length - 1] ?? null;
+  });
   const selected = useMemo(() => {
+    const id = primaryId();
     for (const g of groups()) {
-      const it = g.items.find((i) => i.id === primaryId);
+      const it = g.items.find((i) => i.id === id);
       if (it) return it;
     }
-    return drag()?.item.id === primaryId ? (drag()?.item ?? null) : null;
+    return drag()?.item.id === id ? (drag()?.item ?? null) : null;
   }, [groups, primaryId, drag]);
 
   useEffect(() => {
@@ -1460,8 +1478,8 @@ export default function Page() {
   };
 
   const patchSelected = (patch: Partial<Item>) => {
-    if (!primaryId) return;
-    const id = primaryId;
+    const id = primaryId();
+    if (!id) return;
     snapshotFor(id + ":" + Object.keys(patch).join(","));
     const resizes = "size" in patch || "size2" in patch;
     setGroups((prev) =>
@@ -1850,8 +1868,9 @@ export default function Page() {
     [frames, selectedFrameId],
   );
   const selectedPartFrame = useMemo(() => {
-    if (!primaryId || frame() !== "phone") return null;
-    const g = groups().find((g) => g.items.some((it) => it.id === primaryId));
+    const id = primaryId();
+    if (!id || frame() !== "phone") return null;
+    const g = groups().find((g) => g.items.some((it) => it.id === id));
     return g ? (frameOfGroup(g, frames, widths) ?? null) : null;
   }, [primaryId, frame, groups, frames, widths]);
 
@@ -1859,8 +1878,9 @@ export default function Page() {
   const tidyTarget = useMemo((): Frame | null => {
     if (frame() !== "phone" || isMobile()) return null;
     if (selectedFrame()) return selectedFrame;
-    if (!primaryId) return null;
-    const g = groups().find((g) => g.items.some((it) => it.id === primaryId));
+    const id = primaryId();
+    if (!id) return null;
+    const g = groups().find((g) => g.items.some((it) => it.id === id));
     return g ? (frameOfGroup(g, frames, widths) ?? null) : null;
   }, [frame, isMobile, selectedFrame, primaryId, groups, frames, widths]);
 
@@ -2566,8 +2586,9 @@ export default function Page() {
   /** the screen whose layers the panel lists: the selection's, else the chosen one */
   const layersFrame = useMemo(() => {
     if (frame() !== "phone") return null;
-    if (primaryId) {
-      const g = groups().find((x) => x.items.some((it) => it.id === primaryId));
+    if (primaryId()) {
+      const id = primaryId();
+      const g = groups().find((x) => x.items.some((it) => it.id === id));
       const fid = g ? frameOf().get(g.id) : undefined;
       if (fid) return frames().find((f) => f.id === fid) ?? null;
     }
@@ -3342,8 +3363,8 @@ export default function Page() {
             zoom={view().z}
             onZoom={(z) => setZoomAt(z)}
             onFit={fit}
-            canUndo={history.canUndo}
-            canRedo={history.canRedo}
+            canUndo={(historyTick(), history.canUndo)}
+            canRedo={(historyTick(), history.canRedo)}
             onUndo={undo}
             onRedo={redo}
             onClear={() => {

@@ -60,40 +60,7 @@ function Pill({ p, children }: { p: Palette; children: JSX.Element }) {
   );
 }
 
-export function Toolbar({
-  p,
-  mode,
-  onMode,
-  frame,
-  zoom,
-  onZoom,
-  onFit,
-  canUndo,
-  canRedo,
-  onUndo,
-  onRedo,
-  onClear,
-  onAddFrame,
-  onPreview,
-  rightInset,
-  mobile,
-  onPrompt,
-  onSettings,
-  onLangSheet,
-  tidy,
-  onTidy,
-  place,
-  onPlace,
-  note,
-  onSaveProject,
-  onOpenProject,
-  onShare,
-  shareState = "idle",
-  onDraftKeep,
-  onDraftUndo,
-  onDraftSave,
-  quickUndo,
-}: {
+export function Toolbar(props: {
   p: Palette;
   mode: Mode;
   onMode: (m: Mode) => void;
@@ -137,6 +104,38 @@ export function Toolbar({
   /** after a kept draft: the header's undo, shown beside the opener so the previous design stays a tap away */
   quickUndo?: boolean;
 }) {
+  const {
+    p,
+    mode,
+    onMode,
+    frame,
+    zoom,
+    onZoom,
+    onFit,
+    onUndo,
+    onRedo,
+    onClear,
+    onAddFrame,
+    onPreview,
+    rightInset,
+    mobile,
+    onPrompt,
+    onSettings,
+    onLangSheet,
+    tidy,
+    onTidy,
+    place,
+    onPlace,
+    note,
+    onSaveProject,
+    onOpenProject,
+    onShare,
+    shareState = "idle",
+    onDraftKeep,
+    onDraftUndo,
+    onDraftSave,
+    quickUndo,
+  } = props;
   const lang = useLang();
   const compact =
     !!mobile ||
@@ -159,8 +158,8 @@ export function Toolbar({
         })}
       >
         <Pill p={p}>
-          <IconBtn icon="undo" p={p} onClick={onUndo} disabled={!canUndo} title={t("undo", lang)} size={S} />
-          <IconBtn icon="redo" p={p} onClick={onRedo} disabled={!canRedo} title={t("redo", lang)} size={S} />
+          <IconBtn icon="undo" p={p} onClick={onUndo} disabled={!props.canUndo} title={t("undo", lang)} size={S} />
+          <IconBtn icon="redo" p={p} onClick={onRedo} disabled={!props.canRedo} title={t("redo", lang)} size={S} />
           <IconBtn icon="translate" p={p} onClick={onLangSheet} title={t("language", lang)} size={S} />
           <IconBtn icon="palette" p={p} onClick={onSettings} title={t("settings", lang)} size={S} />
           <GitHubLink p={p} size={S} />
@@ -311,7 +310,7 @@ export function Toolbar({
             ) : (
               <>
                 <ShareButton p={p} onClick={onShare} busy={shareState === "busy"} />
-                {quickUndo && canUndo && <IconBtn icon="undo" p={p} onClick={onUndo} title={t("undo", lang)} size={40} />}
+                {quickUndo && props.canUndo && <IconBtn icon="undo" p={p} onClick={onUndo} title={t("undo", lang)} size={40} />}
               </>
             )}
           </Pill>
@@ -375,7 +374,7 @@ export function Toolbar({
             icon="undo"
             p={p}
             onClick={onUndo}
-            disabled={!canUndo}
+            disabled={!props.canUndo}
             title={t("undo", lang)}
             size={40}
           />
@@ -383,7 +382,7 @@ export function Toolbar({
             icon="redo"
             p={p}
             onClick={onRedo}
-            disabled={!canRedo}
+            disabled={!props.canRedo}
             title={t("redo", lang)}
             size={40}
           />
