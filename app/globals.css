@@ -7,6 +7,22 @@ body {
   max-width: 100%;
   overflow: hidden;
 }
+/* phones and in-app browsers: never show the desktop side rails, even if JS
+   still thinks this is a desktop. the original's phone editor has no asides. */
+html[data-phone] aside {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  flex: 0 0 0 !important;
+}
+@media (max-width: 840px) {
+  aside {
+    display: none !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    flex: 0 0 0 !important;
+  }
+}
 /* in-app browsers (X, Instagram, LINE) may not know dvh; fall back to vh
    and let JS override with the measured inner height when available */
 .app-root {
