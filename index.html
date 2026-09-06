@@ -3,7 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <title>M3E Canvas</title>
+    <script>
+      (function () {
+        try {
+          var ua = navigator.userAgent || "";
+          var w = Math.min(
+            screen.width || 9999,
+            innerWidth || 9999,
+            document.documentElement.clientWidth || 9999
+          );
+          var phone =
+            w <= 900 ||
+            /iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini|Twitter|TwitterAndroid|Instagram|FBAN|FBAV|Line\//i.test(ua) ||
+            /(?:^|[^A-Za-z])X\//i.test(ua) ||
+            ((navigator.maxTouchPoints || 0) > 1 && w <= 1280) ||
+            ("ontouchstart" in window && w <= 1024);
+          if (phone) document.documentElement.setAttribute("data-phone", "1");
+        } catch (e) {
+          document.documentElement.setAttribute("data-phone", "1");
+        }
+      })();
+    </script>
     <meta
       name="description"
       content="Sketch Material 3 Expressive screens in the browser and turn them into vibe-coding prompts. / Material 3 Expressive の画面をブラウザで組み立てて、そのままプロンプトに。"

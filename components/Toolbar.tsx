@@ -138,7 +138,11 @@ export function Toolbar({
   quickUndo?: boolean;
 }) {
   const lang = useLang();
-  if (mobile) {
+  const compact =
+    !!mobile ||
+    (typeof document !== "undefined" && document.documentElement.getAttribute("data-phone") === "1") ||
+    (typeof window !== "undefined" && window.innerWidth <= 840);
+  if (compact) {
     const S = 42;
     return (
       <div

@@ -77,33 +77,35 @@ function cssScreenWidth(): number {
 
 /** Phone / in-app browser. MatchMedia alone is not enough: X's webview
  *  often reports a desktop width or pointer:fine. Use the smallest of the
- *  layout, visual, and screen widths, plus UA / touch. */
+ *  layout, visual, and screen widths, plus UA / touch. Prefer phone when
+ *  unsure: desktop chrome on a phone is unusable, the other way is not. */
 function phoneViewport(): boolean {
-  if (typeof window === "undefined") return false;
-  const widths = [window.innerWidth, document.documentElement?.clientWidth ?? 0];
-  if (window.visualViewport?.width) widths.push(window.visualViewport.width);
-  const css = cssScreenWidth();
-  if (css) widths.push(css);
-  if (window.screen?.availWidth) widths.push(window.screen.availWidth);
-  const w = Math.min(...widths.filter((n) => n > 0));
-  const ua = navigator.userAgent || "";
-  const ch = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
-  if (ch?.mobile) return true;
-  if (w <= 900) return true;
-  if ((navigator.maxTouchPoints ?? 0) > 1 && w <= 1280) return true;
-  if ("ontouchstart" in window && w <= 1024) return true;
-  if (/iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
-  if (/Twitter|TwitterAndroid|Instagram|FBAN|FBAV|Line\/|(?:^|[^A-Za-z])X\//i.test(ua)) return true;
-  if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return true;
-  if (/Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua)) return true;
   try {
+    if (typeof document !== "undefined" && document.documentElement?.getAttribute("data-phone") === "1") return true;
+    if (typeof window === "undefined") return false;
+    const widths = [window.innerWidth, document.documentElement?.clientWidth ?? 0];
+    if (window.visualViewport?.width) widths.push(window.visualViewport.width);
+    const css = cssScreenWidth();
+    if (css) widths.push(css);
+    if (window.screen?.availWidth) widths.push(window.screen.availWidth);
+    const w = Math.min(...widths.filter((n) => n > 0));
+    const ua = navigator.userAgent || "";
+    const ch = (navigator as Navigator & { userAgentData?: { mobile?: boolean } }).userAgentData;
+    if (ch?.mobile) return true;
+    if (w <= 900) return true;
+    if ((navigator.maxTouchPoints ?? 0) > 1 && w <= 1280) return true;
+    if ("ontouchstart" in window && w <= 1024) return true;
+    if (/iPhone|iPod|Android.+Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua)) return true;
+    if (/Twitter|TwitterAndroid|Instagram|FBAN|FBAV|Line\/|(?:^|[^A-Za-z])X\//i.test(ua)) return true;
+    if (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) return true;
+    if (/Android/.test(ua) && /(?:^|\W)wv(?:\W|$)/.test(ua)) return true;
     if (window.matchMedia("(max-width: 840px)").matches) return true;
     if (window.matchMedia("(pointer: coarse) and (max-width: 1024px)").matches) return true;
     if (window.matchMedia("(hover: none) and (pointer: coarse)").matches && w <= 1280) return true;
+    return false;
   } catch {
-    return w <= 1024;
+    return true;
   }
-  return false;
 }
 
 type View = { x: number; y: number; z: number };
@@ -205,7 +207,7 @@ const LEFT_TABS: { key: LeftTab; icon: string; title: "parts" | "layers" | "colo
 export default function Page() {
   /* ---------- document ---------- */
   const initialLang = detectLang();
-  const [editAccess, setEditAccess] = useState<"checking" | "editable" | "readonly">("checking");
+  const [editAccess, setEditAccess] = useState<"editable" | "readonly">("editable");
   const [groups, setGroups] = useState<Group[]>(() => (phoneViewport() ? mobileSeed(initialLang) : seed(initialLang)));
   const [frames, setFrames] = useState<Frame[]>(() => (phoneViewport() ? [mobileHomeFrame(initialLang)] : [{ ...SEED_FRAMES[0], name: t("home", initialLang) }]));
   const [paletteKey, setPaletteKey] = useState("purple");
@@ -377,34 +379,29 @@ export default function Page() {
 
   /* ---------- persistence ---------- */
   onMount(() => {
-    /* The first tab keeps this promise pending for its lifetime. Later tabs get
-       `null` immediately and stay read-only until they are reloaded. Where the
-       browser has no locks (an insecure origin, an old WebKit) the editor works
-       as it always did, without the guard. */
-    if (!navigator.locks) {
-      setEditAccess("editable");
-      return;
-    }
+    /* Phones and in-app browsers (X especially) keep a hidden webview after
+       you "close" the tab. That webview holds the lock, so the next open is
+       read-only forever — the editor looks like it loaded and nothing works.
+       Two-tab overwrite is a desktop problem; skip the lock on a phone. */
+    if (phoneViewport()) return;
+    if (!navigator.locks) return;
     let active = true;
     let releaseLock: (() => void) | undefined;
-    queueMicrotask(() => {
-      if (!active) return;
-      void navigator.locks
-        .request(DOC_LOCK, { ifAvailable: true }, async (lock) => {
-          if (!active) return;
-          if (!lock) {
-            setEditAccess("readonly");
-            return;
-          }
-          setEditAccess("editable");
-          await new Promise<void>((resolve) => {
-            releaseLock = resolve;
-          });
-        })
-        .catch(() => {
-          if (active) setEditAccess("editable");
+    void navigator.locks
+      .request(DOC_LOCK, { ifAvailable: true }, async (lock) => {
+        if (!active) return;
+        if (!lock) {
+          setEditAccess("readonly");
+          return;
+        }
+        setEditAccess("editable");
+        await new Promise<void>((resolve) => {
+          releaseLock = resolve;
         });
-    });
+      })
+      .catch(() => {
+        if (active) setEditAccess("editable");
+      });
     onCleanup(() => {
       active = false;
       releaseLock?.();
@@ -524,9 +521,11 @@ export default function Page() {
   onMount(() => {
     const applyChrome = (opts?: { forceFit?: boolean }) => {
       const m = phoneViewport();
+      if (m) document.documentElement.setAttribute("data-phone", "1");
+      else document.documentElement.removeAttribute("data-phone");
       const changed = m !== mobileRef.current;
-      if (changed) {
-        setIsMobile(m);
+      if (changed || m) {
+        if (m !== mobileRef.current) setIsMobile(m);
         mobileRef.current = m;
         if (m) {
           setMode("select");
