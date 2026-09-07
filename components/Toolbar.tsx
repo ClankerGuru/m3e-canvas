@@ -109,7 +109,6 @@ export function Toolbar(props: {
     mode,
     onMode,
     frame,
-    zoom,
     onZoom,
     onFit,
     onUndo,
@@ -117,7 +116,6 @@ export function Toolbar(props: {
     onClear,
     onAddFrame,
     onPreview,
-    rightInset,
     mobile,
     onPrompt,
     onSettings,
@@ -195,7 +193,7 @@ export function Toolbar(props: {
       <div
         style={s({
           position: "fixed",
-          right: rightInset + 22,
+          right: props.rightInset + 22,
           bottom: 22,
           zIndex: 40,
           transition: "right 260ms cubic-bezier(0.2, 0, 0, 1)",
@@ -244,7 +242,7 @@ export function Toolbar(props: {
           <IconBtn
             icon="remove"
             p={p}
-            onClick={() => onZoom(zoom / 1.2)}
+            onClick={() => onZoom(props.zoom / 1.2)}
             title={t("zoomOut", lang)}
             size={40}
           />
@@ -265,12 +263,12 @@ export function Toolbar(props: {
               fontVariantNumeric: "tabular-nums",
             })}
           >
-            {Math.round(zoom * 100)}%
+            {Math.round(props.zoom * 100)}%
           </button>
           <IconBtn
             icon="add"
             p={p}
-            onClick={() => onZoom(zoom * 1.2)}
+            onClick={() => onZoom(props.zoom * 1.2)}
             title={t("zoomIn", lang)}
             size={40}
           />

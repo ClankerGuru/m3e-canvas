@@ -70,7 +70,7 @@ export function PartsPalette({
       <div class="no-scrollbar" style={s({ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "0 8px" })}>
         {!q() && favorites.length > 0 && (
           <Section id="fav" icon="star" title={t("favorites", lang)} p={p}>
-            <div style={grid}>{favorites.filter((k) => KIND_SPEC[k]).map(tile)}</div>
+            <div style={s(grid)}>{favorites.filter((k) => KIND_SPEC[k]).map(tile)}</div>
           </Section>
         )}
         {q() ? (
@@ -85,7 +85,7 @@ export function PartsPalette({
         ) : (
           CATEGORIES.map((c) => (
             <Section key={c.key} id={`cat:${c.key}`} icon={c.icon} title={lang === "en" ? c.label : CATEGORY_TEXT[lang][c.key]} p={p}>
-              <div style={grid}>{KIND_ORDER.filter((k) => KIND_SPEC[k].category === c.key).map(tile)}</div>
+              <div style={s(grid)}>{KIND_ORDER.filter((k) => KIND_SPEC[k].category === c.key).map(tile)}</div>
             </Section>
           ))
         )}

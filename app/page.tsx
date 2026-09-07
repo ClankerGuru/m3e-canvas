@@ -2241,7 +2241,7 @@ export default function Page() {
           position: "relative",
           width: w,
           height: h,
-          background: p[f.bg ?? "surface"],
+          background: p()[f.bg ?? "surface"],
           overflow: "hidden",
         })}
       >
@@ -2665,7 +2665,7 @@ export default function Page() {
                 radii={corners.get(pl.item.id)}
                 pressed={false}
                 selected={selectedSet().has(pl.item.id)}
-                interactive={!handMode}
+                interactive={!handMode()}
                 onPointerDown={(e) => onItemPointerDown(e, g, pl.index, pl.item)}
               />
             </div>
@@ -2759,7 +2759,7 @@ export default function Page() {
               radii={radii}
               pressed={pressedId() === c.item.id}
               selected={selectedSet().has(c.item.id)}
-              interactive={!handMode}
+              interactive={!handMode()}
               onPointerDown={(e) => onItemPointerDown(e, g, c.index, c.item)}
             />
           );
@@ -2768,10 +2768,11 @@ export default function Page() {
     );
   };
 
-  const handMode = !isMobile() && (mode() === "hand" || spaceHeld());
-  const panning = gesture()?.kind === "pan";
-  const marquee = gesture()?.kind === "marquee" && gesture().moved ? gesture() : null;
-  const canvasBg = frame() === "phone" ? p().surfaceContainerLow : "#ffffff";
+  const handMode = createMemo(() => !isMobile() && (mode() === "hand" || spaceHeld()));
+  const panning = createMemo(() => gesture()?.kind === "pan");
+  const marquee = createMemo(() => (gesture()?.kind === "marquee" && gesture().moved ? gesture() : null));
+  const canvasBg = createMemo(() => (frame() === "phone" ? p().surfaceContainerLow : "#ffffff"));
+  const showRight = createMemo(() => rightOpen() && !isMobile());
 
   const panelStyle: CSSProperties = {
     background: p().surface,
@@ -2782,7 +2783,6 @@ export default function Page() {
     flex: "0 0 auto",
   };
 
-  const showRight = rightOpen() && !isMobile();
   const guide = drag()?.active ? drag().guide : null;
   const visibleWorld = (() => {
     const r = canvasRef.current?.getBoundingClientRect();
@@ -3031,8 +3031,8 @@ export default function Page() {
               inset: isMobile() ? 6 : 8,
               overflow: "hidden",
               borderRadius: 24,
-              background: canvasBg,
-              cursor: panning ? "grabbing" : handMode ? "grab" : "default",
+              background: canvasBg(),
+              cursor: panning() ? "grabbing" : handMode() ? "grab" : "default",
               touchAction: "none",
             })}
           >
@@ -3052,7 +3052,7 @@ export default function Page() {
               {frame() === "phone" &&
                 frames().map((f) => {
                   const on = f.id === selectedFrameId();
-                  const bg = p[f.bg ?? "surface"];
+                  const bg = p()[f.bg ?? "surface"];
                   const { w, h } = frameSizeOf(f);
                   const radius = frameRadius(f);
                   return (
@@ -3078,7 +3078,7 @@ export default function Page() {
                           fontSize: 20,
                           fontWeight: 600,
                           color: on ? p().primary : p().onSurfaceVariant,
-                          cursor: handMode ? "grab" : "move",
+                          cursor: handMode() ? "grab" : "move",
                           userSelect: "none",
                           whiteSpace: "nowrap",
                           fontFamily: uiFontFamily(lang()),
@@ -3105,7 +3105,7 @@ export default function Page() {
                           boxShadow: on
                             ? `0 0 0 3px ${p().primary}, 0 18px 50px rgba(0,0,0,0.16)`
                             : "0 18px 50px rgba(0,0,0,0.14)",
-                          cursor: handMode ? "grab" : "move",
+                          cursor: handMode() ? "grab" : "move",
                           transition: `box-shadow 120ms, ${SIZE_TRANSITION}`,
                         })}
                       >
@@ -3128,7 +3128,7 @@ export default function Page() {
                             .filter((g) => frameOf().get(g.id) === f.id)
                             .map((g) => renderGroup(g, f.x, f.y))}
                           {draftBusy() && (
-                            <div style={s({ position: "absolute", inset: 0, zIndex: 90, background: canvasBg, display: "grid", placeItems: "center" })}>
+                            <div style={s({ position: "absolute", inset: 0, zIndex: 90, background: canvasBg(), display: "grid", placeItems: "center" })}>
                               <LoadingIndicator size={96} color="url(#m3e-drafting)" />
                             </div>
                           )}
@@ -3323,14 +3323,14 @@ export default function Page() {
                 />
               )}
 
-              {marquee && (
+              {marquee() && (
                 <div
                   style={s({
                     position: "absolute",
-                    left: Math.min(marquee.x0, marquee.x1),
-                    top: Math.min(marquee.y0, marquee.y1),
-                    width: Math.abs(marquee.x1 - marquee.x0),
-                    height: Math.abs(marquee.y1 - marquee.y0),
+                    left: Math.min(marquee().x0, marquee().x1),
+                    top: Math.min(marquee().y0, marquee().y1),
+                    width: Math.abs(marquee().x1 - marquee().x0),
+                    height: Math.abs(marquee().y1 - marquee().y0),
                     border: `${1 / view().z}px solid ${p().primary}`,
                     background: `${p().primary}14`,
                     borderRadius: 4 / view().z,
@@ -3385,7 +3385,7 @@ export default function Page() {
             onDraftUndo={undoDraft}
             onDraftSave={() => saveProject(doc())}
             quickUndo={quickUndo()}
-            rightInset={showRight ? rightW : 0}
+            rightInset={showRight() ? rightW() : 0}
             mobile={isMobile()}
             onSettings={() => setSheet(sheet() === "settings" ? null : "settings")}
             onLangSheet={() => setSheet(sheet() === "lang" ? null : "lang")}
@@ -3525,8 +3525,8 @@ export default function Page() {
         </main>
 
         {/* ---- right: inspector / prompt ---- */}
-        {showRight && (
-          <aside style={s({ ...panelStyle, width: rightW })}>
+        {showRight() && (
+          <aside style={s({ ...panelStyle, width: rightW() })}>
             <div
               onPointerDown={(e) => {
                 e.preventDefault();
